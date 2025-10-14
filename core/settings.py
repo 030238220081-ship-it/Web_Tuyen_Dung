@@ -16,7 +16,6 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['web-tuyen-dung-moyp.onrender.com', 'localhost', '127.0.0.1']
 
 
-# --- Application definition (Giữ nguyên) ---
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -25,9 +24,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'recruitment',
+    'cloudinary_storage',
+    'cloudinary',
 ]
 
-# --- MIDDLEWARE (Đã đúng) ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -111,3 +111,14 @@ GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 LOGIN_REDIRECT_URL = 'job_list' # Chuyển hướng về trang chủ sau khi đăng nhập thành công
 LOGOUT_REDIRECT_URL = 'job_list' # Chuyển hướng về trang chủ sau khi đăng xuất
 LOGIN_URL = 'login' # URL của trang đăng nhập
+
+# Cấu hình Cloudinary
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+}
+
+# Chỉ định Cloudinary làm nơi lưu trữ file media mặc định
+MEDIA_URL = '/media/'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
