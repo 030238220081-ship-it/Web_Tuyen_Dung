@@ -1,7 +1,7 @@
 import json, fitz, docx, groq, random, re, traceback
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model, login, logout
 from .models import JobPosting, Application, Profile, Notification, Interview, Question, Answer, QuizResult, EssayAnswer
 from .forms import CustomUserCreationForm, ProfileForm
 from django.urls import reverse_lazy
@@ -1003,3 +1003,11 @@ def view_candidate_profile(request, user_id):
         'profile': profile
     }
     return render(request, 'recruitment/view_candidate_profile.html', context)
+
+def logout_view(request):
+    """
+    Đăng xuất người dùng và chuyển hướng họ về trang chủ.
+    """
+    logout(request)
+    messages.success(request, "Bạn đã đăng xuất thành công.")
+    return redirect('job_list')
