@@ -249,14 +249,32 @@ def search_candidates_view(request):
 
 class RegisterView(generic.CreateView):
     form_class = CustomUserCreationForm
-    success_url = reverse_lazy('job_list')
-    template_name = 'registration/register.html' 
+    template_name = 'registration/register.html'
+    
+    # URL để chuyển hướng sau khi đăng ký thành công
+    def get_success_url(self):
+        # Sau khi đăng ký, đưa họ đến trang đăng nhập để họ làm quen
+        return reverse_lazy('login')
 
     def form_valid(self, form):
+        # Lấy user_type từ các nút radio trên form
+        user_type = self.request.POST.get('user_type')
+        
+        # Kiểm tra xem người dùng đã chọn user_type chưa
+        if not user_type:
+            form.add_error(None, 'Vui lòng chọn loại tài khoản (Ứng viên hoặc Nhà tuyển dụng).')
+            return self.form_invalid(form)
+
+        # Lưu người dùng vào database với user_type đã chọn
         user = form.save(commit=False)
-        user.user_type = 'candidate'
+        user.user_type = user_type
+        user.set_password(form.cleaned_data["password"]) # Mã hóa mật khẩu
         user.save()
-        login(self.request, user)
+        
+        # Tự động tạo một Profile trống cho người dùng mới
+        Profile.objects.create(user=user)
+        
+        messages.success(self.request, 'Tài khoản đã được tạo thành công! Vui lòng đăng nhập.')
         return redirect(self.get_success_url())
     
 @login_required
