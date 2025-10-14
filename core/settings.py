@@ -41,8 +41,25 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
-    # ... (Giữ nguyên phần này) ...
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        # This line tells Django to look for templates inside app directories
+        # (like the admin app's templates).
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                # Your custom context processor
+                'recruitment.context_processors.notifications_context',
+            ],
+        },
+    },
 ]
+
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
