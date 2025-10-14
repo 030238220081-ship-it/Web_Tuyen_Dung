@@ -1,13 +1,11 @@
 from pathlib import Path
 import os
-import dj_database_url # Thêm dòng import này
+import dj_database_url 
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# --- CÁC THÔNG TIN BÍ MẬT (Đã đúng) ---
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
@@ -15,17 +13,16 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 # === SỬA LỖI 1: XÓA 'https://' KHỎI ALLOWED_HOSTS ===
 ALLOWED_HOSTS = ['web-tuyen-dung-moyp.onrender.com', 'localhost', '127.0.0.1']
 
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage', 
     'django.contrib.staticfiles',
-    'recruitment',
-    'cloudinary_storage',
     'cloudinary',
+    'recruitment',
 ]
 
 MIDDLEWARE = [
@@ -98,10 +95,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-
 # --- Cấu hình khác (Đã đúng) ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'recruitment.CustomUser'
@@ -119,6 +112,5 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 
-# Chỉ định Cloudinary làm nơi lưu trữ file media mặc định
-MEDIA_URL = '/media/'
+# DÒNG QUAN TRỌNG NHẤT: CHỈ ĐỊNH CLOUDINARY LÀ NƠI LƯU TRỮ MẶC ĐỊNH
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

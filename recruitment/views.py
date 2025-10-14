@@ -960,11 +960,27 @@ def delete_job_view(request, job_id):
 
 @login_required
 def edit_job_view(request, job_id):
-    # Đây là một hàm phức tạp, chúng ta sẽ tạo một phiên bản đơn giản
-    # để deploy thành công trước.
-    job = get_object_or_404(JobPosting, id=job_id, recruiter=request.user)
-    messages.info(request, "Chức năng chỉnh sửa đang được phát triển.")
-    return redirect('recruiter_dashboard')
+    """
+    Hàm xử lý việc chỉnh sửa một tin tuyển dụng đã đăng.
+    """
+    job = get_object_or_404(JobPosting, pk=job_id, recruiter=request.user)
+
+    if request.method == 'POST':
+        # Lấy dữ liệu từ form và cập nhật
+        job.title = request.POST.get('title', job.title)
+        job.location = request.POST.get('location', job.location)
+        job.salary = request.POST.get('salary', job.salary)
+        job.quantity = request.POST.get('quantity', job.quantity)
+        job.time_limit = request.POST.get('time_limit', job.time_limit)
+        job.benefits = request.POST.get('benefits', job.benefits)
+        job.description = request.POST.get('description', job.description)
+        job.save()
+        messages.success(request, f'Đã cập nhật thành công tin tuyển dụng "{job.title}".')
+        return redirect('recruiter_dashboard')
+
+    # Nếu là request GET, hiển thị form với thông tin hiện tại
+    context = {'job': job}
+    return render(request, 'recruitment/edit_job.html', context)
 
 @login_required
 def re_analyze_application_view(request, application_id):
@@ -975,11 +991,32 @@ def re_analyze_application_view(request, application_id):
 
 @login_required
 def send_interview_invitation_view(request, application_id):
-    application = get_object_or_404(Application, id=application_id)
-    application.status = 'invited'
-    application.save()
-    messages.success(request, f"Đã gửi lời mời phỏng vấn đến {application.candidate.username}.")
-    return redirect('applicant_list', job_id=application.job_posting.id)
+    """
+    Gửi thông báo mời làm bài trắc nghiệm đến ứng viên.
+    """
+    application = get_object_or_404(Application, pk=application_id, job__recruiter=request.user)
+
+    if QuizResult.objects.filter(application=application).exists():
+        messages.warning(request, f"Ứng viên {application.candidate.username} đã hoàn thành bài trắc nghiệm.")
+        return redirect('applicant_list', job_id=application.job.id)
+
+    if not application.job.questions.exists():
+        messages.error(request, f"Bạn cần tạo bộ câu hỏi trắc nghiệm cho vị trí này trước.")
+        return redirect('recruiter_dashboard')
+
+    # Tạo URL cho bài trắc nghiệm
+    quiz_url = reverse('take_quiz', kwargs={'application_id': application.id})
+    
+    message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn thực hiện bài trắc nghiệm sàng lọc cho vị trí '{application.job.title}'. Bấm vào đây để bắt đầu."
+    Notification.objects.create(
+        recipient=application.candidate,
+        message=message_content,
+        action_url=quiz_url
+    )
+    
+    messages.success(request, f"Đã gửi lời mời làm trắc nghiệm đến ứng viên {application.candidate.username}.")
+    return redirect('applicant_list', job_id=application.job.id)
+
 
 @login_required
 def conduct_interview_view(request, application_id):
