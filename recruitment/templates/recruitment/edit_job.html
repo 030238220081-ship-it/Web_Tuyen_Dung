@@ -1,0 +1,50 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Chỉnh sửa tin tuyển dụng{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1 class="card-title">Chỉnh sửa tin tuyển dụng</h1>
+        <p class="card-text">Cập nhật lại thông tin cho vị trí tuyển dụng của bạn.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="title" class="form-label">Chức danh công việc:</label>
+                <input type="text" class="form-control" name="title" id="title" value="{{ job.title }}">
+            </div>
+            <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="location" class="form-label">Địa điểm làm việc:</label>
+                <input type="text" class="form-control" name="location" id="location" value="{{ job.location }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="salary" class="form-label">Mức lương:</label>
+                <input type="text" class="form-control" name="salary" id="salary" value="{{ job.salary }}" placeholder="Ví dụ: 15-20 triệu hoặc Thỏa thuận">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="quantity" class="form-label">Số lượng tuyển:</label>
+            <input type="number" class="form-control" name="quantity" id="quantity" value="{{ job.quantity }}">
+        </div>
+        <div class="mb-3">
+            <label for="benefits" class="form-label">Phúc lợi:</label>
+            <textarea class="form-control" name="benefits" id="benefits" rows="4">{{ job.benefits }}</textarea>
+        </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Mô tả công việc (JD):</label>
+                <textarea class="form-control" name="description" id="description" rows="15">{{ job.description }}</textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'recruiter_dashboard' %}" class="btn btn-secondary">Hủy</a>
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+            </div>
+            <div class="mb-3">
+                <label for="time_limit" class="form-label">Thời gian làm bài kiểm tra (phút):</label>
+                <input type="number" class="form-control" name="time_limit" id="time_limit" value="{{ job.time_limit }}">
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Thông báo của bạn{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Thông báo của bạn</h1>
+<div class="list-group">
+    {% for notification in notifications %}
+        <a href="{{ notification.action_url|default:'#' }}" class="list-group-item list-group-item-action {% if not notification.is_read %}list-group-item-primary{% endif %}">
+            <p class="mb-1">{{ notification.message }}</p>
+            <small class="text-muted">{{ notification.created_at|date:"H:i, d/m/Y" }}</small>
+        </a>
+    {% empty %}
+        <div class="list-group-item">
+            <p class="mb-0">Bạn chưa có thông báo nào.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

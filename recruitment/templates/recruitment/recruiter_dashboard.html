@@ -1,0 +1,76 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Dashboard Nhà tuyển dụng{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Dashboard Nhà tuyển dụng</h1>
+    <div>
+        <a href="{% url 'recruitment_analytics' %}" class="btn btn-success">
+            <i class="bi bi-graph-up"></i> Xem Phân tích & Báo cáo
+        </a>
+        <a href="{% url 'create_job' %}" class="btn btn-primary">Đăng tin tuyển dụng mới</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Tổng số tin đã đăng</h5>
+                <p class="card-text fs-2 fw-bold">{{ total_jobs_posted }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Tổng số hồ sơ đã nhận</h5>
+                <p class="card-text fs-2 fw-bold">{{ total_applications_received }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Quản lý các tin tuyển dụng</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Vị trí tuyển dụng</th>
+                        <th scope="col">Ngày đăng</th>
+                        <th scope="col">Số lượng hồ sơ</th>
+                        <th scope="col">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td class="fw-bold">{{ job.title }}</td>
+                        <td>{{ job.created_at|date:"d/m/Y" }}</td>
+                        <td>
+                            <span class="badge bg-secondary rounded-pill">{{ job.application_count }}</span>
+                        </td>
+                        <td class="align-middle">
+                            <a href="{% url 'applicant_list' job.id %}" class="btn btn-sm btn-info">Xem ứng viên</a>
+                            <a href="{% url 'edit_job' job.id %}" class="btn btn-sm btn-warning">Sửa</a>
+                            {% if not job.questions.all %}
+                            <a href="{% url 'generate_quiz' job.id %}" class="btn btn-sm btn-secondary">AI Tạo trắc nghiệm</a>
+                            {% endif %}
+                            <a href="{% url 'delete_job' job.id %}" class="btn btn-sm btn-danger">Xóa</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">Bạn chưa đăng tin tuyển dụng nào.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

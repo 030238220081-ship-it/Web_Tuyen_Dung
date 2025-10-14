@@ -1,0 +1,31 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Phỏng vấn & Phân tích{% endblock %}
+
+{% block content %}
+<h1 class="mb-2">Phỏng vấn & Phân tích Ứng viên</h1>
+<h3 class="text-primary mb-4">{{ application.candidate.profile.full_name|default:application.candidate.username }} - {{ application.job.title }}</h3>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">💡 AI Gợi ý câu hỏi phỏng vấn</div>
+            <div class="card-body bg-light" style="white-space: pre-wrap;">{{ suggested_questions|linebreaks }}</div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">📝 Ghi chú phỏng vấn & Gửi phân tích</div>
+            <div class="card-body">
+                <p>Hãy ghi chú lại các câu trả lời của ứng viên vào ô dưới đây. Sau khi hoàn tất, nhấn nút để gửi cho AI phân tích.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <textarea class="form-control" name="hr_notes" rows="15" placeholder="Ví dụ:&#10;Q1: Em hãy giới thiệu về dự án Django lớn nhất em từng làm?&#10;A1: Em đã xây dựng một trang e-commerce...&#10;&#10;Q2: Em xử lý tối ưu truy vấn database như thế nào?&#10;A2: Em dùng select_related và prefetch_related..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">🧠 Gửi cho AI phân tích</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

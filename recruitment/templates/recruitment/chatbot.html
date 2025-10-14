@@ -1,0 +1,117 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Trợ lý AI{% endblock %}
+
+{% block content %}
+<style>
+    #chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 60vh;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    #chat-window {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .message {
+        padding: 10px 15px;
+        border-radius: 18px;
+        margin-bottom: 10px;
+        max-width: 70%;
+        line-height: 1.5;
+    }
+    .user-message {
+        background-color: #007bff;
+        color: white;
+        align-self: flex-end;
+    }
+    .bot-message {
+        background-color: #e9ecef;
+        color: #333;
+        align-self: flex-start;
+    }
+    #chat-form {
+        display: flex;
+        border-top: 1px solid #ccc;
+    }
+    #chat-input {
+        flex-grow: 1;
+        border: none;
+        padding: 15px;
+        font-size: 1em;
+    }
+    #chat-submit {
+        border: none;
+        background-color: #007bff;
+        color: white;
+        padding: 15px 25px;
+        cursor: pointer;
+        font-size: 1em;
+    }
+</style>
+
+<h3>Trò chuyện với Trợ lý AI</h3>
+<p>Bạn có thể hỏi tôi về các mẹo tìm việc, cách cải thiện CV, hoặc thông tin chung khác.</p>
+
+<div id="chat-container">
+    <div id="chat-window">
+        <div class="message bot-message">Xin chào! Tôi là Trợ lý AI của JobAI. Tôi có thể giúp gì cho bạn hôm nay?</div>
+    </div>
+    <form id="chat-form">
+        {% csrf_token %}
+        <input type="text" id="chat-input" placeholder="Nhập tin nhắn của bạn..." autocomplete="off" required>
+        <button type="submit" id="chat-submit">Gửi</button>
+    </form>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    chatForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const userMessage = chatInput.value.trim();
+        if (userMessage === '') return;
+
+        // Hiển thị tin nhắn của người dùng
+        appendMessage(userMessage, 'user-message');
+        chatInput.value = '';
+
+        // Gửi tin nhắn đến backend và nhận phản hồi
+        fetch("{% url 'chat_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ message: userMessage })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const botMessage = data.response;
+            appendMessage(botMessage, 'bot-message');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            appendMessage('Xin lỗi, tôi đang gặp sự cố. Vui lòng thử lại sau.', 'bot-message');
+        });
+    });
+
+    function appendMessage(message, className) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', className);
+        messageElement.innerText = message;
+        chatWindow.appendChild(messageElement);
+        // Tự động cuộn xuống tin nhắn mới nhất
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+</script>
+{% endblock %}

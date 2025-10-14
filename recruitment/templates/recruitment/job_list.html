@@ -1,0 +1,71 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Tìm kiếm việc làm thông minh cùng AI{% endblock %}
+
+{% block content %}
+
+<div class="text-center bg-light p-5 rounded-3 mb-5">
+    <h1 class="display-4 fw-bold">Tìm kiếm công việc mơ ước của bạn</h1>
+    <p class="fs-4 text-muted">Với sức mạnh của Trí tuệ nhân tạo, JobAI sẽ giúp bạn kết nối với những cơ hội tốt nhất.</p>
+    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+        <a href="#featured-jobs" class="btn btn-primary btn-lg px-4 gap-3">Xem việc làm ngay</a>
+        <a href="{% url 'register' %}" class="btn btn-outline-secondary btn-lg px-4">Tạo hồ sơ miễn phí</a>
+    </div>
+</div>
+
+<div class="container px-4 py-5" id="how-it-works">
+    <h2 class="pb-2 border-bottom text-center fw-bold">Quy trình ứng tuyển thông minh</h2>
+    <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+        <div class="col d-flex align-items-start text-center">
+            <div class="w-100">
+                <div class="fs-1 text-primary mb-3"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                <h4 class="fw-bold">1. Tải lên CV</h4>
+                <p>Chỉ cần tải lên CV mới nhất của bạn, hệ thống sẽ tự động phân tích.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start text-center">
+            <div class="w-100">
+                <div class="fs-1 text-primary mb-3"><i class="bi bi-magic"></i></div>
+                <h4 class="fw-bold">2. AI Gợi ý việc làm</h4>
+                <p>AI sẽ so khớp hồ sơ của bạn với hàng ngàn tin tuyển dụng để tìm ra vị trí phù hợp nhất.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start text-center">
+            <div class="w-100">
+                <div class="fs-1 text-primary mb-3"><i class="bi bi-send-check-fill"></i></div>
+                <h4 class="fw-bold">3. Ứng tuyển một chạm</h4>
+                <p>Nhận phân tích chi tiết về CV và ứng tuyển vào các vị trí hàng đầu chỉ với một cú nhấp chuột.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="featured-jobs">
+    <h2 class="mb-4 fw-bold text-center">Vị trí đang tuyển dụng</h2>
+    <div class="row">
+        {% for job in jobs %}
+        <div class="col-md-12 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">{{ job.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-geo-alt-fill"></i> {{ job.location }}</h6>
+                        </div>
+                        <div>
+                            <a href="{% url 'job_detail' job.id %}" class="btn btn-outline-primary">Xem chi tiết & Ứng tuyển</a>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="card-text">{{ job.description|truncatewords:40 }}</p>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">Hiện chưa có tin tuyển dụng nào.</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

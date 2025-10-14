@@ -1,0 +1,18 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Xác nhận xóa{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1 class="card-title">Xác nhận xóa tin tuyển dụng</h1>
+        <p>Bạn có chắc chắn muốn xóa tin tuyển dụng cho vị trí <strong>"{{ job.title }}"</strong> không?</p>
+        <p class="text-danger">Hành động này không thể hoàn tác.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <a href="{% url 'recruiter_dashboard' %}" class="btn btn-secondary">Hủy</a>
+            <button type="submit" class="btn btn-danger">Vâng, tôi chắc chắn</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

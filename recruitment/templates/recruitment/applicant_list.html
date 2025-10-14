@@ -1,0 +1,118 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Danh sách ứng viên cho {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2">Ứng viên cho vị trí:</h1>
+        <h2 class="h3 text-primary">{{ job.title }}</h2>
+    </div>
+    <a href="{% url 'recruiter_dashboard' %}" class="btn btn-secondary">Quay lại Dashboard</a>
+</div>
+
+
+{% for application in applications %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h4 class="mb-0">
+            Ứng viên: {{ application.candidate.profile.full_name|default:application.candidate.username }}
+        </h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-7">
+                <p><strong>Ngày nộp:</strong> {{ application.created_at|date:"H:i, d/m/Y" }}</p>
+
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <a href="{{ application.cv.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Xem CV gốc</a>
+                    
+                    {% if not application.quizresult %}
+                        <a href="{% url 'send_invitation' application.id %}" class="btn btn-sm btn-dark">
+                            <i class="bi bi-send"></i> Gửi lời mời làm bài kiểm tra
+                        </a>
+                    {% endif %}
+                </div>
+
+                {% if application.quizresult %}
+                    <div class="alert alert-info py-2">
+                        <p class="mb-1"><strong>Kết quả trắc nghiệm:</strong> 
+                        <span class="fw-bold">{{ application.quizresult.score|floatformat:0 }}/100</span> 
+                        ({{ application.quizresult.correct_answers }}/{{ application.quizresult.total_questions }} câu đúng)
+                        </p>
+                    </div>
+                {% endif %}
+
+                {% if application.essayanswer_set.all %}
+                <div class="mt-2">
+                    <strong>Câu trả lời tự luận:</strong>
+                    <div class="accordion" id="essayAccordion{{ application.id }}">
+                        {% for essay_answer in application.essayanswer_set.all %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ essay_answer.id }}">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ essay_answer.id }}">
+                                    <small>{{ forloop.counter }}. {{ essay_answer.question.text|truncatechars:60 }}</small>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ essay_answer.id }}" class="accordion-collapse collapse" data-bs-parent="#essayAccordion{{ application.id }}">
+                                <div class="accordion-body bg-light" style="white-space: pre-wrap;">
+                                    {{ essay_answer.answer_text|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                </div>
+
+            <div class="col-md-5 border-start">
+                <h5 class="mt-2 mt-md-0">🤖 Đánh giá CV từ AI 🤖</h5>
+                
+                {% if application.ai_score == 0 and "Ứng tuyển nhanh" in application.ai_summary %}
+                    <div class="alert alert-secondary py-2">
+                        <p class="mb-1 small">Ứng viên này đã nộp hồ sơ bằng tính năng "Ứng tuyển nhanh" và chưa được phân tích.</p>
+                        <a href="{% url 're_analyze_application' application.id %}" class="btn btn-sm btn-info w-100">Chạy phân tích CV</a>
+                    </div>
+                {% else %}
+                    <p><strong>Điểm phù hợp:</strong> {{ application.ai_score }} / 100</p>
+                    <p class="mb-1"><strong>Tóm tắt:</strong></p>
+                    <div class="bg-light p-2 rounded small" style="white-space: pre-wrap;">
+                        {{ application.ai_summary|linebreaks }}
+                    </div>
+                {% endif %}
+
+                <hr>
+                <h5 class="mt-3">🎙️ Phỏng vấn & Đánh giá 🎙️</h5>
+                <div class="mt-2">
+                    {% if application.interview %}
+                        <div class="alert alert-success">
+                            <h6 class="alert-heading">Đã phỏng vấn - Điểm: {{ application.interview.ai_score }}/100</h6>
+                            <hr>
+                            <strong>Điểm mạnh:</strong>
+                            <ul>
+                            {% for strength in application.interview.ai_analysis.strengths %}
+                                <li>{{ strength }}</li>
+                            {% endfor %}
+                            </ul>
+                            <strong>Điểm yếu:</strong>
+                            <ul>
+                            {% for weakness in application.interview.ai_analysis.weaknesses %}
+                                <li>{{ weakness }}</li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'conduct_interview' application.id %}" class="btn btn-sm btn-success w-100">
+                            Bắt đầu Phỏng vấn & Phân tích
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-info">Chưa có ứng viên nào nộp hồ sơ cho vị trí này.</div>
+{% endfor %}
+
+{% endblock %}

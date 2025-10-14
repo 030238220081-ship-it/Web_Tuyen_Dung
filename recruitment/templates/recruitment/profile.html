@@ -1,0 +1,53 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Hồ sơ của tôi{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h3 mb-0"><i class="bi bi-person-badge-fill me-2"></i>Hồ sơ của tôi</h1>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.full_name.id_for_label }}" class="form-label fw-bold">Họ và tên</label>
+                        {{ form.full_name }}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.cv_file.id_for_label }}" class="form-label fw-bold">Tệp CV của bạn</label>
+                        
+                        {% if form.instance.cv_file %}
+                        <div class="alert alert-light d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-file-earmark-check-fill text-success me-2"></i>
+                                <strong>Tệp hiện tại:</strong> {{ form.instance.cv_file.name|cut:"cvs/" }}
+                            </span>
+                            <a href="{{ form.instance.cv_file.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">Xem tệp</a>
+                        </div>
+                        <label class="form-text">Tải lên tệp mới sẽ thay thế tệp hiện tại.</label>
+                        {% endif %}
+                        
+                        {{ form.cv_file }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.summary.id_for_label }}" class="form-label fw-bold">Tóm tắt chuyên môn</label>
+                        <p class="form-text mt-0 mb-2">Giới thiệu ngắn gọn về kỹ năng và kinh nghiệm của bạn. AI sẽ sử dụng phần này để tìm kiếm việc làm phù hợp.</p>
+                        {{ form.summary }}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save-fill me-2"></i>Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

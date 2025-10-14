@@ -1,0 +1,56 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Tạo tài khoản mới{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row align-items-center justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-0">
+                    <div class="row g-0">
+                        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center p-5 bg-primary text-white rounded-start">
+                            <h2 class="fw-bold mb-3">Tìm kiếm công việc trong mơ của bạn với sức mạnh AI 🤖</h2>
+                            <p>Tham gia JobAI để được trải nghiệm các công cụ tuyển dụng thông minh hàng đầu:</p>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="bi bi-check-circle-fill me-2"></i> <strong>AI Tìm việc phù hợp:</strong> Tự động gợi ý các vị trí tốt nhất dựa trên CV của bạn.</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill me-2"></i> <strong>AI Nhận xét CV:</strong> Nhận phân tích và góp ý chuyên sâu để hoàn thiện hồ sơ.</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill me-2"></i> <strong>Trợ lý Chatbot 24/7:</strong> Giải đáp mọi thắc mắc của bạn về quá trình ứng tuyển.</li>
+                            </ul>
+                        </div>
+
+                        <div class="col-lg-6 p-5">
+                            <h3 class="fw-bold mb-4">Tạo tài khoản mới</h3>
+                            <form method="post">
+                                {% csrf_token %}
+                                
+                                {% for field in form %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }} {% if field.help_text %}
+                                        <div class="form-text">{{ field.help_text|safe }}</div>
+                                    {% endif %}
+                                    {% for error in field.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                {% endfor %}
+
+                                {% for error in form.non_field_errors %}
+                                <div class="alert alert-danger">{{ error }}</div>
+                                {% endfor %}
+                                
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">Đăng ký</button>
+                                </div>
+                            </form>
+                            <div class="text-center mt-3">
+                                <p class="text-muted">Đã có tài khoản? <a href="{% url 'login' %}" class="fw-bold">Đăng nhập ngay!</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

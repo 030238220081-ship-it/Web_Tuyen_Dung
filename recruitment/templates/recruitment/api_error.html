@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lỗi API</title>
+    <style>body { font-family: sans-serif; text-align: center; margin-top: 50px; }</style>
+</head>
+<body>
+    <h1>Đã có lỗi xảy ra</h1>
+    <p>Hệ thống AI đang gặp sự cố, vui lòng thử lại sau ít phút.</p>
+    <p><strong>Thông tin lỗi:</strong> {{ error }}</p>
+    <a href="{% url 'create_job' %}">Thử lại</a>
+</body>
+</html>

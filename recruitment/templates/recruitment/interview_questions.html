@@ -1,0 +1,19 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Câu hỏi phỏng vấn gợi ý{% endblock %}
+
+{% block content %}
+<h1>AI Gợi ý câu hỏi phỏng vấn</h1>
+<p>Dành cho ứng viên: <strong>{{ application.candidate.username }}</strong></p>
+<p>Ứng tuyển vị trí: <strong>{{ application.job.title }}</strong></p>
+<hr>
+
+{% if error %}
+    <p style="color: red;"><strong>Lỗi:</strong> {{ error }}</p>
+{% else %}
+    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; line-height: 1.8;">
+        {{ questions|linebreaks }}
+    </div>
+{% endif %}
+<br>
+<a href="{% url 'applicant_list' application.job.id %}">Quay lại danh sách ứng viên</a>
+{% endblock %}

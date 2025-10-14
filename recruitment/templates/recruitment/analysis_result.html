@@ -1,0 +1,17 @@
+{% extends 'recruitment/base.html' %}
+
+{% block title %}Kết quả phân tích CV{% endblock %}
+
+{% block content %}
+<h1>Kết quả phân tích CV cho vị trí "{{ job.title }}"</h1>
+<hr>
+{% if error %}
+    <p style="color: red;"><strong>Lỗi:</strong> {{ error }}</p>
+{% else %}
+    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; line-height: 1.7;">
+        {{ result|linebreaks }}
+    </div>
+{% endif %}
+<br>
+<a href="{% url 'job_detail' job.id %}">Quay lại trang chi tiết công việc</a>
+{% endblock %}

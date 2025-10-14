@@ -1,0 +1,24 @@
+# Môi trường ảo
+venv/
+env/
+
+# Database
+db.sqlite3
+db.sqlite3-journal
+
+# File tạm của Python
+__pycache__/
+*.pyc
+
+# File tĩnh đã thu thập
+staticfiles/
+
+# File media người dùng tải lên (nếu có)
+media/
+
+# File cấu hình của IDE
+.vscode/
+.idea/
+
+# Bỏ qua file chứa biến môi trường
+.env

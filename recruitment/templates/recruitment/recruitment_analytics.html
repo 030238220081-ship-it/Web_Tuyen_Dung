@@ -1,0 +1,175 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Báo cáo Phân tích Tuyển dụng{% endblock %}
+
+{% block content %}
+
+<style>
+    @media print {
+        /* Ẩn tất cả các phần tử không cần thiết khi in */
+        .no-print {
+            display: none !important;
+        }
+
+        /* Đảm bảo khu vực biểu đồ chiếm toàn bộ trang giấy */
+        .printable-area {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Tối ưu hóa kích thước biểu đồ cho vừa trang in */
+        .printable-area .card {
+            border: none;
+            box-shadow: none;
+            page-break-inside: avoid; /* Tránh ngắt biểu đồ giữa chừng */
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <h1 class="h2">📊 Trang phân tích Tuyển dụng</h1>
+    <button class="btn btn-secondary" onclick="window.print()"><i class="bi bi-printer"></i> In báo cáo</button>
+</div>
+
+<div class="card mb-4 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <label for="month" class="form-label">Lọc theo tháng</label>
+                <select name="month" id="month" class="form-select">
+                    <option value="">-- Tất cả các tháng --</option>
+                    {% for m in months %}
+                        <option value="{{ m }}" {% if selected_month == m %}selected{% endif %}>Tháng {{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="job_id" class="form-label">Lọc theo vị trí</label>
+                <select name="job_id" id="job_id" class="form-select">
+                    <option value="">-- Tất cả các vị trí --</option>
+                    {% for job in all_jobs_for_filter %}
+                        <option value="{{ job.id }}" {% if selected_job_id == job.id %}selected{% endif %}>{{ job.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Lọc</button>
+                <a href="{% url 'recruitment_analytics' %}" class="btn btn-outline-secondary">Xóa bộ lọc</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row printable-area">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Báo cáo Thực hiện KPI tuyển dụng theo vị trí</div>
+            <div class="card-body">
+                <canvas id="stackedBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Báo cáo Tỷ lệ hoàn thành KPI tuyển dụng theo vị trí</div>
+            <div class="card-body">
+                <canvas id="kpiCompletionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const jobTitles = {{ job_titles_comparison_json|safe }};
+    const actualApplications = {{ actual_applications_json|safe }};
+    const plannedQuantity = {{ planned_quantity_json|safe }};
+    const kpiPercentages = {{ kpi_percentages_json|safe }};
+    const chartColors = {{ chart_colors_json|safe }};
+    // === SỬA LỖI: THÊM DÒNG NÀY ĐỂ KHAI BÁO BIẾN ===
+    const dynamicLabel = "{{ dynamic_label|safe }}";
+
+    // --- Biểu đồ 1: Thực hiện KPI (VỚI TOOLTIP NÂNG CẤP) ---
+    const stackedBarCtx = document.getElementById('stackedBarChart');
+    new Chart(stackedBarCtx, {
+        type: 'bar',
+        data: {
+            labels: jobTitles,
+            datasets: [
+                {
+                    label: 'Kế hoạch',
+                    data: plannedQuantity,
+                    backgroundColor: chartColors.map(color => color.replace('0.7', '0.4')),
+                    borderColor: chartColors.map(color => color.replace('0.7', '1')),
+                    borderWidth: 1
+                },
+                {
+                    label: dynamicLabel,
+                    data: actualApplications,
+                    backgroundColor: chartColors,
+                    borderColor: chartColors.map(color => color.replace('0.7', '1')),
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: true },
+                y: { beginAtZero: true }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y;
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // --- Biểu đồ 2: Tỷ lệ hoàn thành KPI (cũng được nâng cấp tooltip) ---
+    const kpiCompletionCtx = document.getElementById('kpiCompletionChart');
+    new Chart(kpiCompletionCtx, {
+        type: 'bar',
+        data: {
+            labels: jobTitles,
+            datasets: [{
+                label: `Tỷ lệ hoàn thành KPI ${dynamicLabel.replace('Thực hiện', '')}`.trim(),
+                data: kpiPercentages,
+                backgroundColor: chartColors,
+                borderColor: chartColors.map(color => color.replace('0.7', '1')),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, suggestedMax: 100 }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

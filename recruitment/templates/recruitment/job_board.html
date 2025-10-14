@@ -1,0 +1,31 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Danh sách Việc làm{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Vị trí đang tuyển dụng</h2>
+<div class="row">
+    {% for job in jobs %}
+    <div class="col-md-12 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">{{ job.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-geo-alt-fill"></i> {{ job.location }}</h6>
+                    </div>
+                    <div>
+                        <a href="{% url 'job_detail' job.id %}" class="btn btn-outline-primary">Xem chi tiết & Ứng tuyển</a>
+                    </div>
+                </div>
+                <hr>
+                <p class="card-text">{{ job.description|truncatewords:40 }}</p>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">Hiện chưa có tin tuyển dụng nào.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

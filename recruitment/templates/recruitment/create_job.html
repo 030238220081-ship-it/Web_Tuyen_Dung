@@ -1,0 +1,45 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Tạo tin tuyển dụng với AI{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1 class="card-title">Tạo tin tuyển dụng với AI</h1>
+        <p class="card-text">Chỉ cần nhập vào các yêu cầu cốt lõi, AI sẽ giúp bạn viết một JD hoàn chỉnh.</p>
+        
+        <form method="post" id="ai-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="title" class="form-label">Chức danh công việc:</label>
+                <input type="text" class="form-control" name="title" id="title" required placeholder="Ví dụ: Lập trình viên Backend (Python)">
+            </div>
+            <div class="mb-3">
+                <label for="experience" class="form-label">Số năm kinh nghiệm yêu cầu:</label>
+                <input type="text" class="form-control" name="experience" id="experience" required placeholder="Ví dụ: 2-3">
+            </div>
+            <div class="mb-3">
+                <label for="keywords" class="form-label">Các kỹ năng / từ khóa chính:</label>
+                <textarea class="form-control" name="keywords" id="keywords" rows="3" required placeholder="Ví dụ: Django, PostgreSQL, REST API, Git"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100" id="submit-btn">
+                <span id="btn-text">✨ Tạo JD bằng AI</span>
+                <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const aiForm = document.getElementById('ai-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    aiForm.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        btnText.textContent = 'AI đang xử lý, vui lòng chờ...';
+        loadingSpinner.classList.remove('d-none');
+    });
+</script>
+{% endblock %}

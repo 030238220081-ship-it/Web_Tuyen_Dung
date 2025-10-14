@@ -1,0 +1,47 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Việc làm phù hợp với bạn{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">✨ AI Tìm việc phù hợp</h1>
+
+{% if not has_cv %}
+    <div class="alert alert-warning text-center">
+        <h4 class="alert-heading">Bạn chưa tải lên CV!</h4>
+        <p>Để AI có thể tìm kiếm các công việc phù hợp nhất, vui lòng cập nhật CV của bạn.</p>
+        <hr>
+        <a href="{% url 'profile' %}" class="btn btn-primary">Đi đến trang Quản lý CV</a>
+    </div>
+
+{% elif error_message %}
+    <div class="alert alert-danger">{{ error_message }}</div>
+
+{% else %}
+    <p>Dựa trên CV bạn đã tải lên, đây là những công việc phù hợp nhất dành cho bạn.</p>
+    
+    {% for job in matched_jobs %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="card-title">{{ job.title }}</h4>
+                    <p class="card-text text-muted mb-1">Đăng bởi: {{ job.recruiter.username }}</p>
+                    <p class="card-text text-muted"><i class="bi bi-geo-alt-fill"></i> {{ job.location }}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <h5>Độ tương thích: {{ job.match_score }}%</h5>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ job.match_score }}%;" aria-valuenow="{{ job.match_score }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                        <a href="{% url 'job_detail' job.id %}" class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
+                        <a href="{% url 'apply_with_profile' job.id %}" class="btn btn-sm btn-primary">Ứng tuyển ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">Tuyệt vời! Chúng tôi đã phân tích CV của bạn, nhưng hiện tại chưa tìm thấy công việc nào thực sự phù hợp. Vui lòng quay lại sau nhé.</div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

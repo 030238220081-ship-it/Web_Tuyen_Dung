@@ -1,0 +1,50 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Chỉnh sửa & Đăng tin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1 class="card-title">Chỉnh sửa & Đăng tin tuyển dụng</h1>
+        <p class="card-text">AI đã tạo một bản nháp JD cho bạn. Hãy xem lại, chỉnh sửa và điền các thông tin còn thiếu, sau đó nhấn "Đăng tin" để hoàn tất.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="title" class="form-label">Chức danh công việc:</label>
+                <input type="text" class="form-control" name="title" id="title" value="{{ title }}">
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="location" class="form-label">Địa điểm làm việc:</label>
+                    <input type="text" class="form-control" name="location" id="location" placeholder="Ví dụ: Tầng 10, Tòa nhà A, 123 Võ Nguyên Giáp, Đà Nẵng">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="salary" class="form-label">Mức lương:</label>
+                    <input type="text" class="form-control" name="salary" id="salary" placeholder="Ví dụ: 15-20 triệu hoặc Thỏa thuận">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="quantity" class="form-label">Số lượng tuyển:</label>
+                <input type="number" class="form-control" name="quantity" id="quantity" value="1">
+            </div>
+            <div class="mb-3">
+                <label for="benefits" class="form-label">Phúc lợi:</label>
+                <textarea class="form-control" name="benefits" id="benefits" rows="4" placeholder="Ví dụ:&#10;- Lương tháng 13&#10;- Du lịch hàng năm&#10;- Bảo hiểm đầy đủ"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Mô tả công việc (JD):</label>
+                <textarea class="form-control" name="description" id="description" rows="15">{{ generated_jd }}</textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'create_job' %}" class="btn btn-secondary">Tạo lại bằng AI</a>
+                <button type="submit" class="btn btn-primary">Đăng tin</button>
+            </div>
+            <div class="mb-3">
+                <label for="time_limit" class="form-label">Thời gian làm bài kiểm tra (phút):</label>
+                <input type="number" class="form-control" name="time_limit" id="time_limit" value="15">
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
