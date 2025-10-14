@@ -1,7 +1,7 @@
 import json, fitz, docx, groq, random, re, traceback
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import get_user_model, login
 from .models import JobPosting, Application, Profile, Notification, Interview, Question, Answer, QuizResult, EssayAnswer
 from .forms import CustomUserCreationForm, ProfileForm
 from django.urls import reverse_lazy
@@ -914,14 +914,6 @@ def login_view(request):
     
     return render(request, 'registration/login.html', {'form': form})
 
-def logout_view(request):
-    """
-    Đăng xuất người dùng và chuyển hướng họ về trang chủ.
-    """
-    logout(request)
-    messages.success(request, "Bạn đã đăng xuất thành công.")
-    return redirect('job_list')
-
 @login_required
 def job_board_view(request):
     """
@@ -933,3 +925,81 @@ def job_board_view(request):
     jobs = JobPosting.objects.all().order_by('-created_at')
     context = {'jobs': jobs}
     return render(request, 'recruitment/job_board.html', context)
+
+# recruitment/views.py
+
+# DÁN TOÀN BỘ CÁC HÀM NÀY VÀO CUỐI FILE VIEWS.PY CỦA BẠN
+
+@login_required
+def delete_job_view(request, job_id):
+    job = get_object_or_404(JobPosting, id=job_id, recruiter=request.user)
+    if request.method == 'POST':
+        job.delete()
+        messages.success(request, f"Đã xóa thành công vị trí '{job.title}'.")
+        return redirect('recruiter_dashboard')
+    # Nếu không phải POST, có thể render một trang xác nhận (tùy chọn)
+    return redirect('recruiter_dashboard')
+
+@login_required
+def edit_job_view(request, job_id):
+    # Đây là một hàm phức tạp, chúng ta sẽ tạo một phiên bản đơn giản
+    # để deploy thành công trước.
+    job = get_object_or_404(JobPosting, id=job_id, recruiter=request.user)
+    messages.info(request, "Chức năng chỉnh sửa đang được phát triển.")
+    return redirect('recruiter_dashboard')
+
+@login_required
+def re_analyze_application_view(request, application_id):
+    application = get_object_or_404(Application, id=application_id)
+    # Logic phân tích lại CV
+    messages.info(request, "Chức năng phân tích lại đang được phát triển.")
+    return redirect('applicant_list', job_id=application.job_posting.id)
+
+@login_required
+def send_interview_invitation_view(request, application_id):
+    application = get_object_or_404(Application, id=application_id)
+    application.status = 'invited'
+    application.save()
+    messages.success(request, f"Đã gửi lời mời phỏng vấn đến {application.candidate.username}.")
+    return redirect('applicant_list', job_id=application.job_posting.id)
+
+@login_required
+def conduct_interview_view(request, application_id):
+    application = get_object_or_404(Application, id=application_id)
+    messages.info(request, "Chức năng thực hiện phỏng vấn đang được phát triển.")
+    return redirect('applicant_list', job_id=application.job_posting.id)
+
+@login_required
+def take_quiz_view(request, application_id):
+    application = get_object_or_404(Application, id=application_id)
+    messages.info(request, "Chức năng làm bài trắc nghiệm đang được phát triển.")
+    # Chuyển hướng về trang mà ứng viên thường thấy nhất
+    return redirect('job_board') 
+
+@login_required
+def apply_with_profile_view(request, job_id):
+    job = get_object_or_404(JobPosting, id=job_id)
+    # Logic ứng tuyển bằng hồ sơ đã có
+    messages.info(request, "Chức năng ứng tuyển nhanh đang được phát triển.")
+    return redirect('job_detail', job_id=job.id)
+
+# recruitment/views.py
+
+@login_required
+def view_candidate_profile(request, user_id):
+    """
+    Cho phép nhà tuyển dụng xem hồ sơ chi tiết của một ứng viên.
+    """
+    # Đảm bảo chỉ nhà tuyển dụng mới có thể xem
+    if request.user.user_type != 'recruiter':
+        messages.error(request, "Bạn không có quyền truy cập trang này.")
+        return redirect('job_list')
+
+    # Lấy hồ sơ của ứng viên dựa trên user_id
+    profile_user = get_object_or_404(CustomUser, id=user_id, user_type='candidate')
+    profile = get_object_or_404(Profile, user=profile_user)
+
+    context = {
+        'profile': profile
+    }
+    return render(request, 'recruitment/view_candidate_profile.html', context)
