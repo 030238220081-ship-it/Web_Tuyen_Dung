@@ -14,14 +14,19 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['web-tuyen-dung-moyp.onrender.com', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
+    # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'cloudinary_storage', 
     'django.contrib.staticfiles',
+
+    # Third-party apps
+    'cloudinary_storage',
     'cloudinary',
+
+    # Your apps
     'recruitment',
 ]
 
@@ -95,6 +100,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Cấu hình Media files cho local development
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # --- Cấu hình khác (Đã đúng) ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
