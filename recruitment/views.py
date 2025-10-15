@@ -279,25 +279,35 @@ class RegisterView(generic.CreateView):
     
 @login_required
 def profile_view(request):
-    profile, created = Profile.objects.get_or_create(user=request.user)
-    
-    if request.method == 'POST':
-        # --- BẮT ĐẦU ĐOẠN CODE DEBUG ---
-        print("--- DEBUGGING UPLOAD ---")
-        print("request.POST data:", request.POST)
-        print("request.FILES data:", request.FILES)
-        print("------------------------")
-        # --- KẾT THÚC ĐOẠN CODE DEBUG ---
+    """
+    Xử lý việc xem và cập nhật hồ sơ của ứng viên.
+    """
+    # Đảm bảo chỉ ứng viên mới vào được trang này
+    if request.user.user_type != 'candidate':
+        return redirect('recruiter_dashboard')
 
+    # Lấy hoặc tạo một profile cho người dùng hiện tại
+    profile, created = Profile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        # === SỬA LỖI QUAN TRỌNG NHẤT Ở ĐÂY ===
+        # Thêm request.FILES để Django có thể xử lý file CV được tải lên
         form = ProfileForm(request.POST, request.FILES, instance=profile)
+        
         if form.is_valid():
             form.save()
             messages.success(request, 'Hồ sơ của bạn đã được cập nhật thành công!')
             return redirect('profile')
+        else:
+            messages.error(request, 'Vui lòng kiểm tra lại các thông tin đã nhập.')
     else:
         form = ProfileForm(instance=profile)
-        
-    return render(request, 'recruitment/profile.html', {'form': form})
+
+    context = {
+        'form': form,
+        'profile': profile
+    }
+    return render(request, 'recruitment/profile.html', context)
 
 @login_required
 def recruiter_dashboard(request):

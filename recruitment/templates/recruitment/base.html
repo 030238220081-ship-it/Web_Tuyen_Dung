@@ -160,14 +160,77 @@
             </div>
         </div>
         
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatForm = document.getElementById('chat-form');
-            if (chatForm) {
-                // ... (toàn bộ phần script của chatbot giữ nguyên) ...
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+        const chatInput = document.getElementById('chat-input');
+        const chatHistory = document.getElementById('chat-history');
+        // Lấy "chìa khóa" CSRF từ một input ẩn (cách an toàn nhất)
+        const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+        // --- BẮT ĐẦU HÀM BẠN CẦN THÊM ---
+        function appendMessage(message, sender, isTyping = false) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('d-flex', 'mb-3', sender === 'user' ? 'justify-content-end' : 'justify-content-start');
+
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('p-2', 'rounded', 'mw-75');
+            
+            if (sender === 'user') {
+                messageBubble.classList.add('bg-primary', 'text-white');
+            } else {
+                messageBubble.classList.add('bg-light', 'text-dark', 'border');
+            }
+
+            if (isTyping) {
+                messageBubble.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+                messageBubble.classList.add('typing-indicator');
+            } else {
+                messageBubble.textContent = message;
+            }
+
+            messageWrapper.appendChild(messageBubble);
+            chatHistory.appendChild(messageWrapper);
+            
+            // Tự động cuộn xuống tin nhắn mới nhất
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            return messageWrapper; // Trả về phần tử để có thể xóa (ví dụ: xóa typing indicator)
+        }
+        // --- KẾT THÚC HÀM ---
+
+        chatForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            appendMessage(userMessage, 'user');
+            chatInput.value = '';
+            const typingIndicator = appendMessage('...', 'bot', true);
+
+            try {
+                const response = await fetch("{% url 'chat_api' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken 
+                    },
+                    body: JSON.stringify({ message: userMessage })
+                });
+                const data = await response.json();
+                
+                typingIndicator.remove();
+                appendMessage(data.response, 'bot');
+            } catch (error) {
+                typingIndicator.remove();
+                appendMessage('Xin lỗi, đã có lỗi kết nối xảy ra.', 'bot');
+                console.error('Chatbot error:', error);
             }
         });
-        </script>
+    }
+});
+</script>
     {% endif %}
 </body>
 </html>

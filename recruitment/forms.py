@@ -35,11 +35,16 @@ class CustomUserCreationForm(forms.ModelForm):
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ['full_name', 'cv_file', 'summary']
+        fields = ['full_name', 'summary', 'cv_file']
         widgets = {
-            'full_name': forms.TextInput(attrs={'class': 'form-control form-control-lg'}),
-            'cv_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'full_name': forms.TextInput(attrs={'class': 'form-control'}),
             'summary': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'cv_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'full_name': 'Họ và tên',
+            'summary': 'Tóm tắt bản thân / Giới thiệu kỹ năng',
+            'cv_file': 'Tải lên CV (PDF, DOCX)',
         }
 
 

@@ -11,6 +11,7 @@
 <h1>Bài kiểm tra cho vị trí: {{ application.job.title }}</h1>
 <p>Hãy hoàn thành các câu hỏi dưới đây. Bài sẽ tự động nộp khi hết giờ.</p>
 <form method="post" id="quiz-form">
+    <!-- THÊM DÒNG NÀY ĐỂ KHẮC PHỤC LỖI -->
     {% csrf_token %}
 
     {% if mc_questions %}
