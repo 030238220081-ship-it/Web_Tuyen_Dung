@@ -34,15 +34,6 @@ class Application(models.Model):
     def __str__(self):
         return f"{self.candidate.username} applied for {self.job.title}"
     
-class Profile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    full_name = models.CharField(max_length=255, blank=True)
-    cv_file = models.FileField(upload_to='cvs/', blank=True, null=True)
-    summary = models.TextField(blank=True, null=True, verbose_name="Tóm tắt bản thân")
-
-    def __str__(self):
-        return self.user.username
-    
 class Notification(models.Model):
     recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications', verbose_name="Người nhận")
     message = models.TextField(verbose_name="Nội dung thông báo")
@@ -112,4 +103,13 @@ class EssayAnswer(models.Model):
 
     def __str__(self):
         return f"Câu trả lời của {self.application.candidate.username} cho câu hỏi '{self.question.text[:30]}...'"
-    
+
+class Profile(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=255, blank=True)
+    cv_file = models.FileField(upload_to='cvs/', null=True, blank=True)
+
+    summary = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.user.username
