@@ -60,7 +60,7 @@ class Question(models.Model):
     QUESTION_TYPES = [('MC', 'Trắc nghiệm'), ('ESSAY', 'Tự luận')]
     job_posting = models.ForeignKey(JobPosting, on_delete=models.CASCADE, related_name='questions')
     text = models.CharField(max_length=500)
-    question_type = models.CharField(max_length=5, choices=QUESTION_TYPES, default='MC')
+    question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='MC')
 
     def __str__(self):
         return self.text
@@ -107,9 +107,8 @@ class EssayAnswer(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=255, blank=True)
-    cv_file = models.FileField(upload_to='cvs/', null=True, blank=True)
-
-    summary = models.TextField(blank=True)
+    cv_file = models.FileField(upload_to='cvs/', blank=True, null=True)
+    summary = models.TextField(blank=True, null=True, verbose_name="Tóm tắt bản thân")
 
     def __str__(self):
         return self.user.username

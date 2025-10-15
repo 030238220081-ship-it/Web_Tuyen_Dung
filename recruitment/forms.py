@@ -31,11 +31,6 @@ class CustomUserCreationForm(forms.ModelForm):
         if cd['password'] != cd['password2']:
             raise forms.ValidationError('Mật khẩu không khớp.')
         return cd['password2']
-    
-class ProfileForm(forms.ModelForm):
-    class Meta:
-        model = Profile
-        fields = ['full_name', 'cv_file', 'summary']
 
 class ProfileForm(forms.ModelForm):
     class Meta:
@@ -46,5 +41,7 @@ class ProfileForm(forms.ModelForm):
             'cv_file': forms.FileInput(attrs={'class': 'form-control'}),
             'summary': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
         }
+
+
 
 

@@ -665,53 +665,62 @@ def generate_quiz_view(request, job_id):
 
 @login_required
 def take_quiz_view(request, application_id):
+    """
+    Xử lý việc ứng viên làm và nộp bài trắc nghiệm (cả trắc nghiệm và tự luận).
+    """
     application = get_object_or_404(Application, pk=application_id, candidate=request.user)
+    job = application.job
+    
+    # Lấy câu hỏi và phân loại chúng
+    all_questions = Question.objects.filter(job_posting=job)
+    mc_questions = all_questions.filter(question_type='mc')
+    essay_questions = all_questions.filter(question_type='essay')
+
     if QuizResult.objects.filter(application=application).exists():
-        messages.warning(request, "Bạn đã hoàn thành bài trắc nghiệm cho vị trí này rồi.")
-        return redirect('job_list') 
-    questions = application.job.questions.all()
-
-    if not questions.exists():
-        messages.error(request, "Nhà tuyển dụng chưa tạo bộ câu hỏi cho vị trí này.")
-        return redirect('job_list')
-
-    mc_questions = application.job.questions.filter(question_type='MC')
-    essay_questions = application.job.questions.filter(question_type='ESSAY')
+        messages.warning(request, "Bạn đã hoàn thành bài kiểm tra này rồi.")
+        return redirect('notifications')
 
     if request.method == 'POST':
-        correct_answers = 0
+        # Xử lý phần trắc nghiệm
+        score = 0
+        total_mc_questions = mc_questions.count()
         for question in mc_questions:
             selected_answer_id = request.POST.get(f'question_{question.id}')
             if selected_answer_id:
-                selected_answer = Answer.objects.get(pk=selected_answer_id)
-                if selected_answer.is_correct:
-                    correct_answers += 1
-
-        score = (correct_answers / mc_questions.count()) * 100 if mc_questions.count() > 0 else 0
-        QuizResult.objects.create(
-            application=application, score=score,
-            correct_answers=correct_answers, total_questions=mc_questions.count()
-        )
-
+                try:
+                    selected_answer = Answer.objects.get(pk=selected_answer_id)
+                    if selected_answer.is_correct:
+                        score += 1
+                except Answer.DoesNotExist:
+                    pass
+        
+        # Xử lý phần tự luận
         for question in essay_questions:
             answer_text = request.POST.get(f'question_{question.id}')
             if answer_text:
                 EssayAnswer.objects.create(
-                    application=application, question=question, answer_text=answer_text
+                    application=application,
+                    question=question,
+                    answer_text=answer_text
                 )
 
-        messages.success(request, "Bạn đã hoàn thành bài kiểm tra. Kết quả đã được gửi đến nhà tuyển dụng.")
-        return redirect('job_list')
+        # Lưu kết quả phần trắc nghiệm
+        percentage_score = (score / total_mc_questions) * 100 if total_mc_questions > 0 else 0
+        QuizResult.objects.create(
+            application=application,
+            score=percentage_score
+        )
+        
+        messages.success(request, f"Bạn đã nộp bài thành công! Kết quả phần trắc nghiệm: {percentage_score:.1f}/100.")
+        return redirect('notifications')
 
     context = {
-        'application': application, 
-        'mc_questions': mc_questions, 
+        'application': application,
+        'mc_questions': mc_questions,
         'essay_questions': essay_questions,
-        'time_limit': application.job.time_limit 
+        'time_limit': job.time_limit, # Gửi thời gian làm bài cho template
     }
     return render(request, 'recruitment/take_quiz.html', context)
-
-# recruitment/views.py
 
 @login_required
 def cv_review_view(request):

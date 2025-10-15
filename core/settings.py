@@ -60,23 +60,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# === SỬA LỖI 2: CẤU HÌNH DATABASE CHO RENDER ===
-# Xóa hoặc comment out cấu hình sqlite3 cũ
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# Thêm cấu hình mới, tự động đọc từ DATABASE_URL
-DATABASES = {
-    'default': dj_database_url.config(
-        # Mặc định sẽ đọc từ biến môi trường DATABASE_URL
-        conn_max_age=600,
-        ssl_require=True # Bắt buộc SSL cho kết nối an toàn trên Render
-    )
-}
+if os.getenv('RENDER'):
+    # Nếu đang chạy trên Render, sử dụng PostgreSQL
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    # Nếu đang chạy trên máy tính (local), sử dụng SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # --- Password validation (Giữ nguyên) ---
