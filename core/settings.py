@@ -95,23 +95,25 @@ USE_I18N = True
 USE_TZ = True
 
 
-# --- Static and Media files (Đã đúng) ---
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Cấu hình Media files cho local development
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-if not DEBUG:
+# Cấu hình cho Production (khi DEBUG=False, ví dụ trên Render)
+if DEBUG is False:
+    print("RUNNING IN PRODUCTION MODE, USING CLOUDINARY") # Dòng debug
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
         'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
         'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
     }
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# Cấu hình cho Local Development (khi DEBUG=True)
+else:
+    print("RUNNING IN DEBUG MODE, USING LOCAL STORAGE") # Dòng debug
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # --- Cấu hình khác (Đã đúng) ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
