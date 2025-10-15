@@ -280,7 +280,15 @@ class RegisterView(generic.CreateView):
 @login_required
 def profile_view(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
+    
     if request.method == 'POST':
+        # --- BẮT ĐẦU ĐOẠN CODE DEBUG ---
+        print("--- DEBUGGING UPLOAD ---")
+        print("request.POST data:", request.POST)
+        print("request.FILES data:", request.FILES)
+        print("------------------------")
+        # --- KẾT THÚC ĐOẠN CODE DEBUG ---
+
         form = ProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
@@ -288,6 +296,7 @@ def profile_view(request):
             return redirect('profile')
     else:
         form = ProfileForm(instance=profile)
+        
     return render(request, 'recruitment/profile.html', {'form': form})
 
 @login_required
