@@ -105,6 +105,14 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+if not DEBUG:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+    }
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
 # --- Cấu hình khác (Đã đúng) ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'recruitment.CustomUser'
@@ -115,12 +123,3 @@ LOGIN_REDIRECT_URL = 'job_list' # Chuyển hướng về trang chủ sau khi đ�
 LOGOUT_REDIRECT_URL = 'job_list' # Chuyển hướng về trang chủ sau khi đăng xuất
 LOGIN_URL = 'login' # URL của trang đăng nhập
 
-# Cấu hình Cloudinary
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-}
-
-# DÒNG QUAN TRỌNG NHẤT: CHỈ ĐỊNH CLOUDINARY LÀ NƠI LƯU TRỮ MẶC ĐỊNH
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
