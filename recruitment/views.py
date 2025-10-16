@@ -237,6 +237,10 @@ class RegisterView(generic.CreateView):
     
 @login_required
 def profile_view(request):
+    print("====================== DEBUGGING SETTINGS ======================")
+    print(f"✅ DEFAULT_FILE_STORAGE IS: {settings.DEFAULT_FILE_STORAGE}")
+    print("================================================================")
+    
     """
     Xử lý việc xem và cập nhật hồ sơ của ứng viên.
     """
