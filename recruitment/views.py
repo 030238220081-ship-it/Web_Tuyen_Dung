@@ -1053,32 +1053,21 @@ def conduct_interview_view(request, application_id):
     return redirect('applicant_list', job_id=application.job_posting.id)
 
 @login_required
-def take_quiz_view(request, application_id):
-    application = get_object_or_404(Application, id=application_id)
-    messages.info(request, "Chức năng làm bài trắc nghiệm đang được phát triển.")
-    # Chuyển hướng về trang mà ứng viên thường thấy nhất
-    return redirect('job_board') 
-
-@login_required
 def apply_with_profile_view(request, job_id):
     job = get_object_or_404(JobPosting, id=job_id)
     # Logic ứng tuyển bằng hồ sơ đã có
     messages.info(request, "Chức năng ứng tuyển nhanh đang được phát triển.")
     return redirect('job_detail', job_id=job.id)
 
-# recruitment/views.py
-
 @login_required
 def view_candidate_profile(request, user_id):
     """
     Cho phép nhà tuyển dụng xem hồ sơ chi tiết của một ứng viên.
     """
-    # Đảm bảo chỉ nhà tuyển dụng mới có thể xem
     if request.user.user_type != 'recruiter':
         messages.error(request, "Bạn không có quyền truy cập trang này.")
         return redirect('job_list')
 
-    # Lấy hồ sơ của ứng viên dựa trên user_id
     profile_user = get_object_or_404(CustomUser, id=user_id, user_type='candidate')
     profile = get_object_or_404(Profile, user=profile_user)
 
