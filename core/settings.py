@@ -88,7 +88,6 @@ AUTH_PASSWORD_VALIDATORS = [
     # ... (Giữ nguyên phần này) ...
 ]
 
-# --- Internationalization (Giữ nguyên) ---
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -99,9 +98,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Cấu hình cho Production (khi DEBUG=False, ví dụ trên Render)
 if DEBUG is False:
-    print("RUNNING IN PRODUCTION MODE, USING CLOUDINARY") # Dòng debug
+    print("RUNNING IN PRODUCTION MODE, USING CLOUDINARY") 
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
         'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
@@ -109,19 +107,16 @@ if DEBUG is False:
     }
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-# Cấu hình cho Local Development (khi DEBUG=True)
 else:
-    print("RUNNING IN DEBUG MODE, USING LOCAL STORAGE") # Dòng debug
+    print("RUNNING IN DEBUG MODE, USING LOCAL STORAGE") 
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# --- Cấu hình khác (Đã đúng) ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'recruitment.CustomUser'
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
-# === Đề xuất cải thiện (Tùy chọn) ===
-LOGIN_REDIRECT_URL = 'job_list' # Chuyển hướng về trang chủ sau khi đăng nhập thành công
-LOGOUT_REDIRECT_URL = 'job_list' # Chuyển hướng về trang chủ sau khi đăng xuất
-LOGIN_URL = 'login' # URL của trang đăng nhập
+LOGIN_REDIRECT_URL = 'job_list' 
+LOGOUT_REDIRECT_URL = 'job_list' 
+LOGIN_URL = 'login' 
 

@@ -4,7 +4,6 @@ from .models import CustomUser
 from .models import Profile
 
 class CustomUserCreationForm(forms.ModelForm):
-    # Phần định nghĩa password và password2 giữ nguyên, đảm bảo chúng có widget
     password = forms.CharField(
         label='Mật khẩu', 
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
@@ -16,7 +15,6 @@ class CustomUserCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        # === THAY ĐỔI QUAN TRỌNG NHẤT: XÓA 'user_type' KHỎI ĐÂY ===
         fields = ('username', 'email') 
         help_texts = {
             'username': None,

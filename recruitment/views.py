@@ -62,11 +62,9 @@ def create_job(request):
             messages.error(request, 'AI đang gặp sự cố, vui lòng thử lại.')
             return redirect('create_job')
 
-        # Lưu kết quả nháp vào session
         request.session['jd_title'] = title
         request.session['generated_jd'] = generated_jd.strip()
 
-        # Chuyển hướng đến trang chỉnh sửa
         return redirect('create_job_review')
 
     return render(request, 'recruitment/create_job.html')
@@ -251,27 +249,19 @@ class RegisterView(generic.CreateView):
     form_class = CustomUserCreationForm
     template_name = 'registration/register.html'
     
-    # URL để chuyển hướng sau khi đăng ký thành công
     def get_success_url(self):
-        # Sau khi đăng ký, đưa họ đến trang đăng nhập để họ làm quen
         return reverse_lazy('login')
 
     def form_valid(self, form):
-        # Lấy user_type từ các nút radio trên form
         user_type = self.request.POST.get('user_type')
-        
-        # Kiểm tra xem người dùng đã chọn user_type chưa
         if not user_type:
             form.add_error(None, 'Vui lòng chọn loại tài khoản (Ứng viên hoặc Nhà tuyển dụng).')
             return self.form_invalid(form)
-
-        # Lưu người dùng vào database với user_type đã chọn
         user = form.save(commit=False)
         user.user_type = user_type
-        user.set_password(form.cleaned_data["password"]) # Mã hóa mật khẩu
+        user.set_password(form.cleaned_data["password"]) 
         user.save()
         
-        # Tự động tạo một Profile trống cho người dùng mới
         Profile.objects.create(user=user)
         
         messages.success(self.request, 'Tài khoản đã được tạo thành công! Vui lòng đăng nhập.')
@@ -282,16 +272,12 @@ def profile_view(request):
     """
     Xử lý việc xem và cập nhật hồ sơ của ứng viên.
     """
-    # Đảm bảo chỉ ứng viên mới vào được trang này
     if request.user.user_type != 'candidate':
         return redirect('recruiter_dashboard')
 
-    # Lấy hoặc tạo một profile cho người dùng hiện tại
     profile, created = Profile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
-        # === SỬA LỖI QUAN TRỌNG NHẤT Ở ĐÂY ===
-        # Thêm request.FILES để Django có thể xử lý file CV được tải lên
         form = ProfileForm(request.POST, request.FILES, instance=profile)
         
         if form.is_valid():
@@ -319,7 +305,7 @@ def recruiter_dashboard(request):
     total_jobs_posted = jobs.count()
     total_applications_received = sum(job.application_count for job in jobs)
     context = {
-    'jobs': jobs,  # Danh sách các job đã được annotate
+    'jobs': jobs, 
     'total_jobs_posted': total_jobs_posted,
     'total_applications_received': total_applications_received,
 }
@@ -357,7 +343,6 @@ def job_match_view(request):
             context = {'error_message': 'Không thể đọc được nội dung từ file CV của bạn.'}
             return render(request, 'recruitment/job_matches.html', context)
 
-        # === DÒNG GỠ RỐI 1: KIỂM TRA NỘI DUNG CV ===
         print("\n--- BẮT ĐẦU PHÂN TÍCH TÌM VIỆC ---")
         print(f"NỘI DUNG CV ĐÃ ĐỌC (50 ký tự đầu): {cv_text[:50]}...")
         print("------------------------------------")
@@ -368,8 +353,6 @@ def job_match_view(request):
         for job in all_jobs:
             print(f"Đang phân tích Job: '{job.title}'")
             score = get_ai_match_score(cv_text, job.description)
-            
-            # === DÒNG GỠ RỐI 2: XEM ĐIỂM SỐ CỤ THỂ ===
             print(f"-> Điểm AI trả về: {score}") 
             
             if score > 20:
@@ -378,7 +361,7 @@ def job_match_view(request):
                 print("-> KẾT QUẢ: Job được thêm vào danh sách.")
             else:
                 print("-> KẾT QUẢ: Job bị loại do điểm thấp.")
-            print("---") # In ra để phân tách các job
+            print("---") 
 
         matched_jobs_with_scores.sort(key=lambda x: x.match_score, reverse=True)
                 
@@ -532,12 +515,11 @@ def send_interview_invitation_view(request, application_id):
 
     quiz_url = reverse('take_quiz', kwargs={'application_id': application.id})
 
-    # Tạo thông báo cho ứng viên
     message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn thực hiện bài trắc nghiệm sàng lọc cho vị trí '{application.job.title}'. Bấm vào đây để bắt đầu."
     Notification.objects.create(
         recipient=application.candidate,
         message=message_content,
-        action_url=quiz_url  # Lưu URL vừa tạo
+        action_url=quiz_url  
     )
 
     messages.success(request, f"Đã gửi lời mời làm trắc nghiệm đến ứng viên {application.candidate.username}.")
@@ -553,7 +535,6 @@ def notification_list_view(request):
 def conduct_interview_view(request, application_id):
     application = get_object_or_404(Application, pk=application_id, job__recruiter=request.user)
 
-    # Xử lý khi HR nhập ghi chú và yêu cầu AI phân tích
     if request.method == 'POST':
         hr_notes = request.POST.get('hr_notes')
 
@@ -579,12 +560,11 @@ def conduct_interview_view(request, application_id):
             client = groq.Groq(api_key=settings.GROQ_API_KEY)
             chat_completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": analysis_prompt}],
-                model="llama-3.3-70b-versatile", # Dùng model mạnh nhất
+                model="llama-3.3-70b-versatile", 
             )
             response_text = chat_completion.choices[0].message.content
             ai_analysis_data = json.loads(response_text)
 
-            # Lưu kết quả vào model Interview
             Interview.objects.update_or_create(
                 application=application,
                 defaults={
@@ -611,7 +591,7 @@ def conduct_interview_view(request, application_id):
         client = groq.Groq(api_key=settings.GROQ_API_KEY)
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": questions_prompt}],
-            model="llama-3.3-70b-versatile", # Dùng model nhanh để gợi ý
+            model="llama-3.3-70b-versatile", 
         )
         suggested_questions = chat_completion.choices[0].message.content
     except Exception as e:
@@ -664,17 +644,15 @@ def generate_quiz_view(request, job_id):
             for answer_text in all_answers:
                 Answer.objects.create(question=q, text=answer_text, is_correct=(answer_text == correct_answer_text))
 
-        # Tạo câu hỏi tự luận
         for question_text in quiz_data.get('essay', []):
             Question.objects.create(job_posting=job, text=question_text, question_type='ESSAY')
 
         messages.success(request, f"Đã tạo thành công bộ câu hỏi sàng lọc cho vị trí '{job.title}'.")
 
-    # Bắt lỗi cụ thể hơn
     except json.JSONDecodeError:
         messages.error(request, "AI đã trả về dữ liệu không hợp lệ. Vui lòng thử lại.")
         print("--- LỖI JSON ---")
-        print(response_text) # In ra phản hồi lỗi để bạn gỡ rối
+        print(response_text) 
         print("-----------------")
     except Exception as e:
         print(f"Lỗi API khi tạo quiz: {e}")
@@ -690,7 +668,6 @@ def take_quiz_view(request, application_id):
     application = get_object_or_404(Application, pk=application_id, candidate=request.user)
     job = application.job
     
-    # Lấy câu hỏi và phân loại chúng
     all_questions = Question.objects.filter(job_posting=job)
     mc_questions = all_questions.filter(question_type='mc')
     essay_questions = all_questions.filter(question_type='essay')
@@ -700,7 +677,6 @@ def take_quiz_view(request, application_id):
         return redirect('notifications')
 
     if request.method == 'POST':
-        # Xử lý phần trắc nghiệm
         score = 0
         total_mc_questions = mc_questions.count()
         for question in mc_questions:
@@ -713,7 +689,6 @@ def take_quiz_view(request, application_id):
                 except Answer.DoesNotExist:
                     pass
         
-        # Xử lý phần tự luận
         for question in essay_questions:
             answer_text = request.POST.get(f'question_{question.id}')
             if answer_text:
@@ -723,7 +698,6 @@ def take_quiz_view(request, application_id):
                     answer_text=answer_text
                 )
 
-        # Lưu kết quả phần trắc nghiệm
         percentage_score = (score / total_mc_questions) * 100 if total_mc_questions > 0 else 0
         QuizResult.objects.create(
             application=application,
@@ -737,17 +711,15 @@ def take_quiz_view(request, application_id):
         'application': application,
         'mc_questions': mc_questions,
         'essay_questions': essay_questions,
-        'time_limit': job.time_limit, # Gửi thời gian làm bài cho template
+        'time_limit': job.time_limit, 
     }
     return render(request, 'recruitment/take_quiz.html', context)
 
 @login_required
 def cv_review_view(request):
-    # Xử lý khi người dùng gửi yêu cầu phân tích (POST request)
     if request.method == 'POST':
         response_text = ""
         try:
-            # Phần lấy CV và JD giữ nguyên, không thay đổi
             profile = request.user.profile
             if not profile.cv_file:
                 return JsonResponse({'success': False, 'error': 'Bạn chưa tải lên CV.'})
@@ -763,11 +735,7 @@ def cv_review_view(request):
 
             job = get_object_or_404(JobPosting, pk=job_id)
             jd_text = job.description
-            
-            # === BƯỚC 1: LẤY ĐIỂM SỐ NHẤT QUÁN TỪ HÀM CHUNG ===
             score = get_ai_match_score(cv_text, jd_text)
-
-            # === BƯỚC 2: DÙNG ĐIỂM SỐ LÀM NGỮ CẢNH ĐỂ LẤY PHÂN TÍCH CHI TIẾT ===
             analysis_prompt = f"""
             Một ứng viên có CV đạt {score} điểm (trên thang 100) khi so sánh với một Mô tả công việc (JD).
             Dựa trên CV và JD dưới đây, hãy đóng vai một chuyên gia tư vấn sự nghiệp và đưa ra phân tích.
@@ -790,19 +758,15 @@ def cv_review_view(request):
             )
             response_text = chat_completion.choices[0].message.content
             
-            # Phần xử lý JSON (giữ nguyên)
             json_match = re.search(r'```json\n(.*?)\n```', response_text, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
             else:
                 json_str = response_text
             analysis_data = json.loads(json_str)
-
-            # === TỔ HỢP KẾT QUẢ ĐỂ GỬI VỀ FRONTEND ===
-            # Tự thêm điểm số đã tính ở Bước 1 vào kết quả cuối cùng
             final_response_data = {
                 "score": score,
-                "strengths": analysis_data.get("strengths", []), # Dùng .get để an toàn
+                "strengths": analysis_data.get("strengths", []), 
                 "suggestions": analysis_data.get("suggestions", [])
             }
             
@@ -972,10 +936,6 @@ def job_board_view(request):
     context = {'jobs': jobs}
     return render(request, 'recruitment/job_board.html', context)
 
-# recruitment/views.py
-
-# DÁN TOÀN BỘ CÁC HÀM NÀY VÀO CUỐI FILE VIEWS.PY CỦA BẠN
-
 @login_required
 def delete_job_view(request, job_id):
     job = get_object_or_404(JobPosting, id=job_id, recruiter=request.user)
@@ -983,7 +943,6 @@ def delete_job_view(request, job_id):
         job.delete()
         messages.success(request, f"Đã xóa thành công vị trí '{job.title}'.")
         return redirect('recruiter_dashboard')
-    # Nếu không phải POST, có thể render một trang xác nhận (tùy chọn)
     return redirect('recruiter_dashboard')
 
 @login_required
@@ -994,7 +953,6 @@ def edit_job_view(request, job_id):
     job = get_object_or_404(JobPosting, pk=job_id, recruiter=request.user)
 
     if request.method == 'POST':
-        # Lấy dữ liệu từ form và cập nhật
         job.title = request.POST.get('title', job.title)
         job.location = request.POST.get('location', job.location)
         job.salary = request.POST.get('salary', job.salary)
@@ -1006,14 +964,12 @@ def edit_job_view(request, job_id):
         messages.success(request, f'Đã cập nhật thành công tin tuyển dụng "{job.title}".')
         return redirect('recruiter_dashboard')
 
-    # Nếu là request GET, hiển thị form với thông tin hiện tại
     context = {'job': job}
     return render(request, 'recruitment/edit_job.html', context)
 
 @login_required
 def re_analyze_application_view(request, application_id):
     application = get_object_or_404(Application, id=application_id)
-    # Logic phân tích lại CV
     messages.info(request, "Chức năng phân tích lại đang được phát triển.")
     return redirect('applicant_list', job_id=application.job_posting.id)
 
@@ -1032,7 +988,6 @@ def send_interview_invitation_view(request, application_id):
         messages.error(request, f"Bạn cần tạo bộ câu hỏi trắc nghiệm cho vị trí này trước.")
         return redirect('recruiter_dashboard')
 
-    # Tạo URL cho bài trắc nghiệm
     quiz_url = reverse('take_quiz', kwargs={'application_id': application.id})
     
     message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn thực hiện bài trắc nghiệm sàng lọc cho vị trí '{application.job.title}'. Bấm vào đây để bắt đầu."
@@ -1045,7 +1000,6 @@ def send_interview_invitation_view(request, application_id):
     messages.success(request, f"Đã gửi lời mời làm trắc nghiệm đến ứng viên {application.candidate.username}.")
     return redirect('applicant_list', job_id=application.job.id)
 
-
 @login_required
 def conduct_interview_view(request, application_id):
     application = get_object_or_404(Application, id=application_id)
@@ -1055,7 +1009,6 @@ def conduct_interview_view(request, application_id):
 @login_required
 def apply_with_profile_view(request, job_id):
     job = get_object_or_404(JobPosting, id=job_id)
-    # Logic ứng tuyển bằng hồ sơ đã có
     messages.info(request, "Chức năng ứng tuyển nhanh đang được phát triển.")
     return redirect('job_detail', job_id=job.id)
 

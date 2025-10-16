@@ -49,23 +49,15 @@
     const timeLimitMinutes = {{ time_limit }};
     const quizForm = document.getElementById('quiz-form');
     const timerDisplay = document.getElementById('timer');
-
-    // Tính toán thời gian kết thúc
     const endTime = new Date().getTime() + timeLimitMinutes * 60 * 1000;
-
-    // Cập nhật đồng hồ mỗi giây
     const timerInterval = setInterval(function() {
         const now = new Date().getTime();
         const distance = endTime - now;
-
-        // Tính toán phút và giây
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-        // Hiển thị kết quả
         timerDisplay.textContent = minutes.toString().padStart(2, '0') + ":" + seconds.toString().padStart(2, '0');
 
-        // Khi hết giờ
         if (distance < 0) {
             clearInterval(timerInterval);
             timerDisplay.textContent = "Hết giờ!";
