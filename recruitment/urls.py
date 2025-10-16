@@ -30,13 +30,9 @@ urlpatterns = [
     path('job/<int:job_id>/edit/', views.edit_job_view, name='edit_job'),
     path('job/<int:job_id>/delete/', views.delete_job_view, name='delete_job'),
     path('job/<int:job_id>/applicants/', views.applicant_list_view, name='applicant_list'),
-    path('job/<int:job_id>/generate-quiz/', views.generate_quiz_view, name='generate_quiz'),
 
     # --- URL liên quan đến một Hồ sơ ứng tuyển cụ thể (Application) ---
     path('application/<int:application_id>/re-analyze/', views.re_analyze_application_view, name='re_analyze_application'),
     path('application/<int:application_id>/invite/', views.send_interview_invitation_view, name='send_invitation'),
-    path('application/<int:application_id>/interview-questions/', views.generate_interview_questions, name='interview_questions'),
-    path('application/<int:application_id>/conduct-interview/', views.conduct_interview_view, name='conduct_interview'),
-    path('application/<int:application_id>/take-quiz/', views.take_quiz_view, name='take_quiz'),
     path('application/<int:job_id>/apply-with-profile/', views.apply_with_profile_view, name='apply_with_profile'),
 ]

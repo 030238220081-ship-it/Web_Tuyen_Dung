@@ -37,6 +37,7 @@ class Application(models.Model):
 class Notification(models.Model):
     recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications', verbose_name="Người nhận")
     message = models.TextField(verbose_name="Nội dung thông báo")
+    action_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="Link hành động")
     is_read = models.BooleanField(default=False, verbose_name="Đã đọc")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
 
@@ -56,54 +57,6 @@ class Interview(models.Model):
     def __str__(self):
         return f"Phỏng vấn cho {self.application.candidate.username} vị trí {self.application.job.title}"
     
-class Question(models.Model):
-    QUESTION_TYPES = [('MC', 'Trắc nghiệm'), ('ESSAY', 'Tự luận')]
-    job_posting = models.ForeignKey(JobPosting, on_delete=models.CASCADE, related_name='questions')
-    text = models.CharField(max_length=500)
-    question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='MC')
-
-    def __str__(self):
-        return self.text
-
-class Answer(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
-    text = models.CharField(max_length=255)
-    is_correct = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.question.text[:30]}... -> {self.text}"
-
-class QuizResult(models.Model):
-    application = models.OneToOneField(Application, on_delete=models.CASCADE)
-    score = models.FloatField()
-    correct_answers = models.PositiveIntegerField()
-    total_questions = models.PositiveIntegerField()
-    completed_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Kết quả của {self.application.candidate.username} cho vị trí {self.application.job.title}"
-    
-class Notification(models.Model):
-    recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications', verbose_name="Người nhận")
-    message = models.TextField(verbose_name="Nội dung thông báo")
-    action_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="Link hành động")
-    is_read = models.BooleanField(default=False, verbose_name="Đã đọc")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
-
-    def __str__(self):
-        return f"Thông báo cho {self.recipient.username}: {self.message[:30]}"
-
-    class Meta:
-        ordering = ['-created_at']
-
-class EssayAnswer(models.Model):
-    application = models.ForeignKey(Application, on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    answer_text = models.TextField()
-
-    def __str__(self):
-        return f"Câu trả lời của {self.application.candidate.username} cho câu hỏi '{self.question.text[:30]}...'"
-
 class Profile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=255, blank=True)

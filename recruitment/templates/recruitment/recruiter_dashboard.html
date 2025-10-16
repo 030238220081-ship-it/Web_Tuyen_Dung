@@ -57,9 +57,6 @@
                         <td class="align-middle">
                             <a href="{% url 'applicant_list' job.id %}" class="btn btn-sm btn-info">Xem ứng viên</a>
                             <a href="{% url 'edit_job' job.id %}" class="btn btn-sm btn-warning">Sửa</a>
-                            {% if not job.questions.all %}
-                            <a href="{% url 'generate_quiz' job.id %}" class="btn btn-sm btn-secondary">AI Tạo trắc nghiệm</a>
-                            {% endif %}
                             <a href="{% url 'delete_job' job.id %}" class="btn btn-sm btn-danger">Xóa</a>
                         </td>
                     </tr>

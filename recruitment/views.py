@@ -2,7 +2,7 @@ import json, fitz, docx, groq, random, re, traceback
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model, login, logout
-from .models import JobPosting, Application, Profile, Notification, Interview, Question, Answer, QuizResult, EssayAnswer
+from .models import JobPosting, Application, Profile, Notification
 from .forms import CustomUserCreationForm, ProfileForm
 from django.urls import reverse_lazy
 from django.views import generic
@@ -134,38 +134,6 @@ def analyze_cv_view(request, job_id):
         print(f"Lỗi Groq API khi phân tích CV: {e}")
 
     return render(request, 'recruitment/analysis_result.html', {'result': analysis_result, 'job': job})
-
-@login_required
-def generate_interview_questions(request, application_id):
-    application = get_object_or_404(Application, pk=application_id, job__recruiter=request.user)
-    cv_text = extract_text_from_cv(application.cv)
-    job_description = application.job.description
-    if not cv_text:
-        return render(request, 'recruitment/interview_questions.html', {'error': 'Không thể đọc file CV của ứng viên.'})
-
-    prompt = f"""Với vai trò là một người quản lý tuyển dụng, hãy dựa vào JD và CV của ứng viên dưới đây.
-    --- JD ---
-    {job_description}
-    --- END JD ---
-    --- CV ---
-    {cv_text}
-    --- END CV ---
-    Hãy tạo ra một danh sách gồm 5 câu hỏi phỏng vấn sâu sắc để đánh giá năng lực và sự phù hợp của ứng viên này.
-    """
-    
-    interview_questions = "Không thể tạo câu hỏi."
-    try:
-        client = groq.Groq(api_key=settings.GROQ_API_KEY)
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
-        )
-        interview_questions = chat_completion.choices[0].message.content
-    except Exception as e:
-        print(f"Lỗi Groq API khi tạo câu hỏi phỏng vấn: {e}")
-
-    context = {'application': application, 'questions': interview_questions}
-    return render(request, 'recruitment/interview_questions.html', context)
 
 @login_required
 def chat_api_view(request):
@@ -503,26 +471,16 @@ def re_analyze_application_view(request, application_id):
 @login_required
 def send_interview_invitation_view(request, application_id):
     application = get_object_or_404(Application, pk=application_id, job__recruiter=request.user)
-
-
-    if QuizResult.objects.filter(application=application).exists():
-        messages.warning(request, f"Ứng viên {application.candidate.username} đã hoàn thành bài trắc nghiệm.")
-        return redirect('applicant_list', job_id=application.job.id)
-
-    if not application.job.questions.exists():
-        messages.error(request, f"Bạn cần tạo bộ câu hỏi trắc nghiệm cho vị trí '{application.job.title}' trước khi gửi lời mời.")
-        return redirect('applicant_list', job_id=application.job.id)
-
     quiz_url = reverse('take_quiz', kwargs={'application_id': application.id})
 
-    message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn thực hiện bài trắc nghiệm sàng lọc cho vị trí '{application.job.title}'. Bấm vào đây để bắt đầu."
+    message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn phỏng vấn cho vị trí '{application.job.title}'. Bấm vào đây để bắt đầu."
     Notification.objects.create(
         recipient=application.candidate,
         message=message_content,
         action_url=quiz_url  
     )
 
-    messages.success(request, f"Đã gửi lời mời làm trắc nghiệm đến ứng viên {application.candidate.username}.")
+    messages.success(request, f"Đã gửi lời mời đến ứng viên {application.candidate.username}.")
     return redirect('applicant_list', job_id=application.job.id)
 
 @login_required
@@ -530,190 +488,6 @@ def notification_list_view(request):
     notifications = Notification.objects.filter(recipient=request.user)
     Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
     return render(request, 'recruitment/notifications.html', {'notifications': notifications})
-
-@login_required
-def conduct_interview_view(request, application_id):
-    application = get_object_or_404(Application, pk=application_id, job__recruiter=request.user)
-
-    if request.method == 'POST':
-        hr_notes = request.POST.get('hr_notes')
-
-        cv_text = extract_text_from_cv(application.cv)
-        jd_text = application.job.description
-
-        analysis_prompt = f"""Bạn là một chuyên gia nhân sự dày dặn kinh nghiệm. Dựa vào JD, CV, và ghi chú phỏng vấn dưới đây, hãy đưa ra một bản phân tích toàn diện.
-
-        --- JD ---
-        {jd_text}
-        --- CV ---
-        {cv_text}
-        --- GHI CHÚ PHỎNG VẤN (câu hỏi của HR và câu trả lời của ứng viên) ---
-        {hr_notes}
-
-        Hãy trả về kết quả dưới dạng MỘT CHUỖI JSON HỢP LỆ và KHÔNG có gì khác. JSON phải có 3 key:
-        - "score": Điểm số tổng thể (số nguyên từ 0-100) dựa trên sự phù hợp.
-        - "strengths": Một danh sách (list) chứa 3 chuỗi, mỗi chuỗi là một điểm mạnh chính của ứng viên được thể hiện qua buổi phỏng vấn.
-        - "weaknesses": Một danh sách (list) chứa 2 chuỗi, mỗi chuỗi là một điểm yếu hoặc điều cần cải thiện.
-        """
-
-        try:
-            client = groq.Groq(api_key=settings.GROQ_API_KEY)
-            chat_completion = client.chat.completions.create(
-                messages=[{"role": "user", "content": analysis_prompt}],
-                model="llama-3.3-70b-versatile", 
-            )
-            response_text = chat_completion.choices[0].message.content
-            ai_analysis_data = json.loads(response_text)
-
-            Interview.objects.update_or_create(
-                application=application,
-                defaults={
-                    'hr_notes': hr_notes,
-                    'ai_analysis': ai_analysis_data,
-                    'ai_score': ai_analysis_data.get('score', 0)
-                }
-            )
-            messages.success(request, "Đã phân tích và lưu kết quả phỏng vấn thành công!")
-        except Exception as e:
-            print(f"Lỗi API khi phân tích phỏng vấn: {e}")
-            messages.error(request, "AI gặp sự cố, không thể phân tích buổi phỏng vấn.")
-
-        return redirect('applicant_list', job_id=application.job.id)
-
-    questions_prompt = f"""Dựa vào JD và CV dưới đây, hãy tạo ra 5 câu hỏi phỏng vấn sâu sắc để đánh giá năng lực và sự phù hợp của ứng viên.
-    --- JD ---
-    {application.job.description}
-    --- CV ---
-    {extract_text_from_cv(application.cv)}
-    """
-    suggested_questions = "Không thể tạo câu hỏi gợi ý."
-    try:
-        client = groq.Groq(api_key=settings.GROQ_API_KEY)
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": questions_prompt}],
-            model="llama-3.3-70b-versatile", 
-        )
-        suggested_questions = chat_completion.choices[0].message.content
-    except Exception as e:
-        print(f"Lỗi API khi tạo câu hỏi PV: {e}")
-
-    context = {
-        'application': application,
-        'suggested_questions': suggested_questions,
-    }
-    return render(request, 'recruitment/conduct_interview.html', context)
-
-@login_required
-def generate_quiz_view(request, job_id):
-    job = get_object_or_404(JobPosting, pk=job_id, recruiter=request.user)
-    job.questions.all().delete()
-
-    prompt = f"""Bạn là một chuyên gia tuyển dụng kỹ thuật. Dựa vào Mô tả công việc (JD) dưới đây, hãy tạo một bài kiểm tra sàng lọc ngắn.
-
-    --- JD ---
-    {job.description}
-
-    Hãy trả về kết quả dưới dạng MỘT CHUỖI JSON HỢP LỆ và KHÔNG có gì khác. Toàn bộ chuỗi JSON phải được bọc trong cặp dấu ```json ... ```.
-    KHÔNG GIẢI THÍCH GÌ THÊM. JSON object phải có 2 key:
-    1. "multiple_choice": Một danh sách (list) chứa 3 câu hỏi trắc nghiệm ở mức độ trung bình-khó. Mỗi câu hỏi là một object có:
-        - "question": (string) Nội dung câu hỏi.
-        - "answers": (list) Một danh sách gồm 4 chuỗi đáp án KHÁC NHAU. Đáp án ĐÚNG phải luôn nằm ở vị trí đầu tiên.
-    2. "essay": Một danh sách (list) chứa 2 câu hỏi tự luận tình huống, yêu cầu ứng viên giải thích cách xử lý một vấn đề thực tế liên quan đến công việc.
-    """
-    try:
-        client = groq.Groq(api_key=settings.GROQ_API_KEY)
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
-        )
-        response_text = chat_completion.choices[0].message.content
-
-        json_match = re.search(r'```json\n(.*?)\n```', response_text, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(1)
-        else:
-            json_str = response_text 
-
-        quiz_data = json.loads(json_str)
-
-        for item in quiz_data.get('multiple_choice', []):
-            q = Question.objects.create(job_posting=job, text=item['question'], question_type='MC')
-            correct_answer_text = item['answers'][0]
-            all_answers = item['answers']
-            random.shuffle(all_answers)
-            for answer_text in all_answers:
-                Answer.objects.create(question=q, text=answer_text, is_correct=(answer_text == correct_answer_text))
-
-        for question_text in quiz_data.get('essay', []):
-            Question.objects.create(job_posting=job, text=question_text, question_type='ESSAY')
-
-        messages.success(request, f"Đã tạo thành công bộ câu hỏi sàng lọc cho vị trí '{job.title}'.")
-
-    except json.JSONDecodeError:
-        messages.error(request, "AI đã trả về dữ liệu không hợp lệ. Vui lòng thử lại.")
-        print("--- LỖI JSON ---")
-        print(response_text) 
-        print("-----------------")
-    except Exception as e:
-        print(f"Lỗi API khi tạo quiz: {e}")
-        messages.error(request, "AI gặp sự cố, không thể tạo bộ câu hỏi.")
-
-    return redirect('recruiter_dashboard')
-
-@login_required
-def take_quiz_view(request, application_id):
-    """
-    Xử lý việc ứng viên làm và nộp bài trắc nghiệm (cả trắc nghiệm và tự luận).
-    """
-    application = get_object_or_404(Application, pk=application_id, candidate=request.user)
-    job = application.job
-    
-    all_questions = Question.objects.filter(job_posting=job)
-    mc_questions = all_questions.filter(question_type='mc')
-    essay_questions = all_questions.filter(question_type='essay')
-
-    if QuizResult.objects.filter(application=application).exists():
-        messages.warning(request, "Bạn đã hoàn thành bài kiểm tra này rồi.")
-        return redirect('notifications')
-
-    if request.method == 'POST':
-        score = 0
-        total_mc_questions = mc_questions.count()
-        for question in mc_questions:
-            selected_answer_id = request.POST.get(f'question_{question.id}')
-            if selected_answer_id:
-                try:
-                    selected_answer = Answer.objects.get(pk=selected_answer_id)
-                    if selected_answer.is_correct:
-                        score += 1
-                except Answer.DoesNotExist:
-                    pass
-        
-        for question in essay_questions:
-            answer_text = request.POST.get(f'question_{question.id}')
-            if answer_text:
-                EssayAnswer.objects.create(
-                    application=application,
-                    question=question,
-                    answer_text=answer_text
-                )
-
-        percentage_score = (score / total_mc_questions) * 100 if total_mc_questions > 0 else 0
-        QuizResult.objects.create(
-            application=application,
-            score=percentage_score
-        )
-        
-        messages.success(request, f"Bạn đã nộp bài thành công! Kết quả phần trắc nghiệm: {percentage_score:.1f}/100.")
-        return redirect('notifications')
-
-    context = {
-        'application': application,
-        'mc_questions': mc_questions,
-        'essay_questions': essay_questions,
-        'time_limit': job.time_limit, 
-    }
-    return render(request, 'recruitment/take_quiz.html', context)
 
 @login_required
 def cv_review_view(request):
@@ -777,7 +551,6 @@ def cv_review_view(request):
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': 'Đã có lỗi nghiêm trọng xảy ra phía máy chủ.'})
     
-    # Nếu là request GET, chỉ hiển thị trang với danh sách Job (giữ nguyên)
     else:
         all_jobs = JobPosting.objects.all()
         context = {'jobs': all_jobs}
@@ -968,49 +741,22 @@ def edit_job_view(request, job_id):
     return render(request, 'recruitment/edit_job.html', context)
 
 @login_required
-def re_analyze_application_view(request, application_id):
-    application = get_object_or_404(Application, id=application_id)
-    messages.info(request, "Chức năng phân tích lại đang được phát triển.")
-    return redirect('applicant_list', job_id=application.job_posting.id)
-
-@login_required
 def send_interview_invitation_view(request, application_id):
     """
-    Gửi thông báo mời làm bài trắc nghiệm đến ứng viên.
+    Gửi thông báo phỏng vấn đến ứng viên.
     """
     application = get_object_or_404(Application, pk=application_id, job__recruiter=request.user)
-
-    if QuizResult.objects.filter(application=application).exists():
-        messages.warning(request, f"Ứng viên {application.candidate.username} đã hoàn thành bài trắc nghiệm.")
-        return redirect('applicant_list', job_id=application.job.id)
-
-    if not application.job.questions.exists():
-        messages.error(request, f"Bạn cần tạo bộ câu hỏi trắc nghiệm cho vị trí này trước.")
-        return redirect('recruiter_dashboard')
-
     quiz_url = reverse('take_quiz', kwargs={'application_id': application.id})
     
-    message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn thực hiện bài trắc nghiệm sàng lọc cho vị trí '{application.job.title}'. Bấm vào đây để bắt đầu."
+    message_content = f"Nhà tuyển dụng '{request.user.username}' mời bạn phỏng vấn cho vị trí '{application.job.title}'."
     Notification.objects.create(
         recipient=application.candidate,
         message=message_content,
         action_url=quiz_url
     )
     
-    messages.success(request, f"Đã gửi lời mời làm trắc nghiệm đến ứng viên {application.candidate.username}.")
+    messages.success(request, f"Đã gửi lời đến ứng viên {application.candidate.username}.")
     return redirect('applicant_list', job_id=application.job.id)
-
-@login_required
-def conduct_interview_view(request, application_id):
-    application = get_object_or_404(Application, id=application_id)
-    messages.info(request, "Chức năng thực hiện phỏng vấn đang được phát triển.")
-    return redirect('applicant_list', job_id=application.job_posting.id)
-
-@login_required
-def apply_with_profile_view(request, job_id):
-    job = get_object_or_404(JobPosting, id=job_id)
-    messages.info(request, "Chức năng ứng tuyển nhanh đang được phát triển.")
-    return redirect('job_detail', job_id=job.id)
 
 @login_required
 def view_candidate_profile(request, user_id):
