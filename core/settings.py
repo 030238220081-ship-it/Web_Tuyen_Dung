@@ -93,13 +93,13 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-if DEBUG is False:
-    print("RUNNING IN PRODUCTION MODE, USING CLOUDINARY") 
+if os.getenv('RENDER') == 'true':
+    print("✅ RUNNING ON RENDER, USING CLOUDINARY")
+    
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
         'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
@@ -108,7 +108,8 @@ if DEBUG is False:
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 else:
-    print("RUNNING IN DEBUG MODE, USING LOCAL STORAGE") 
+    print("💻 RUNNING LOCALLY, USING LOCAL STORAGE")
+    
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
