@@ -22,10 +22,6 @@
                         
                         {% if form.instance.cv_file %}
                         <div class="alert alert-light d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="bi bi-file-earmark-check-fill text-success me-2"></i>
-                                <strong>Tệp hiện tại:</strong> {{ form.instance.cv_file.name|cut:"cvs/" }}
-                            </span>
                             <a href="{{ form.instance.cv_file.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">Xem tệp</a>
                         </div>
                         <label class="form-text">Tải lên tệp mới sẽ thay thế tệp hiện tại.</label>
