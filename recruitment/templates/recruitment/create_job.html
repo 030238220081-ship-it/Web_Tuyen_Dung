@@ -1,20 +1,20 @@
 {% extends 'recruitment/base.html' %}
-{% block title %}Tạo tin tuyển dụng với AI{% endblock %}
+{% block title %}Tạo tin tuyển dụng {% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="card-body">
-        <h1 class="card-title">Tạo tin tuyển dụng với AI</h1>
-        <p class="card-text">Chỉ cần nhập vào các yêu cầu cốt lõi, AI sẽ giúp bạn viết một JD hoàn chỉnh.</p>
+        <h1 class="card-title">Tạo tin tuyển dụng </h1>
+        <p class="card-text">Chỉ cần nhập vào các yêu cầu chính tôi sẽ giúp bạn viết một JD hoàn chỉnh.</p>
         
         <form method="post" id="ai-form">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="title" class="form-label">Chức danh công việc:</label>
+                <label for="title" class="form-label">Vị trí công việc:</label>
                 <input type="text" class="form-control" name="title" id="title" required placeholder="Ví dụ: Lập trình viên Backend ">
             </div>
             <div class="mb-3">
-                <label for="experience" class="form-label">Số năm kinh nghiệm yêu cầu:</label>
+                <label for="experience" class="form-label">Số năm kinh nghiệm:</label>
                 <input type="text" class="form-control" name="experience" id="experience" required placeholder="Ví dụ: 2-3">
             </div>
             <div class="mb-3">
@@ -23,7 +23,7 @@
             </div>
             
             <button type="submit" class="btn btn-primary w-100" id="submit-btn">
-                <span id="btn-text">✨ Tạo JD bằng AI</span>
+                <span id="btn-text"> Tạo JD bằng AI</span>
                 <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
             </button>
         </form>

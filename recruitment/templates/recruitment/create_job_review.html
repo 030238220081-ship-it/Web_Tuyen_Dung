@@ -5,7 +5,7 @@
 <div class="card">
     <div class="card-body">
         <h1 class="card-title">Chỉnh sửa & Đăng tin tuyển dụng</h1>
-        <p class="card-text">AI đã tạo một bản nháp JD cho bạn. Hãy xem lại, chỉnh sửa và điền các thông tin còn thiếu, sau đó nhấn "Đăng tin" để hoàn tất.</p>
+        <p class="card-text">Tôi đã tạo một bản nháp JD cho bạn. Hãy xem lại, chỉnh sửa và điền các thông tin còn thiếu, sau đó nhấn "Đăng tin" để hoàn tất.</p>
 
         <form method="post">
             {% csrf_token %}
@@ -33,7 +33,7 @@
                 <textarea class="form-control" name="description" id="description" rows="15">{{ generated_jd }}</textarea>
             </div>
             <div class="d-flex justify-content-end gap-2">
-                <a href="{% url 'create_job' %}" class="btn btn-secondary">Tạo lại bằng AI</a>
+                <a href="{% url 'create_job' %}" class="btn btn-secondary">Tạo lại</a>
                 <button type="submit" class="btn btn-primary">Đăng tin</button>
             </div>
             </div>
