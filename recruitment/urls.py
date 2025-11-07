@@ -2,13 +2,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # --- URL Chính & Xác thực ---
     path('', views.job_list_view, name='job_list'),
     path('login/', views.login_view, name='login'),
     path('register/', views.RegisterView.as_view(), name='register'),
-    path('logout/', views.logout_view, name='logout'), # Thêm URL đăng xuất nếu bạn chưa có
-
-    # --- URL cho Ứng viên (Candidate) ---
+    path('logout/', views.logout_view, name='logout'), 
     path('jobs/', views.job_board_view, name='job_board'),
     path('profile/', views.profile_view, name='profile'),
     path('job-matches/', views.job_match_view, name='job_matches'),
@@ -16,23 +13,26 @@ urlpatterns = [
     path('notifications/', views.notification_list_view, name='notifications'),
     path('chatbot/', views.chatbot_view, name='chatbot'),
     path('api/chat/', views.chat_api_view, name='chat_api'),
-
-    # --- URL cho Nhà tuyển dụng (Recruiter) ---
     path('dashboard/', views.recruiter_dashboard, name='recruiter_dashboard'),
     path('create-job/', views.create_job, name='create_job'),
     path('create-job/review/', views.create_job_review, name='create_job_review'),
     path('search-candidates/', views.search_candidates_view, name='search_candidates'),
     path('candidate/<int:user_id>/', views.view_candidate_profile, name='view_candidate_profile'),
     path('analytics/', views.recruitment_analytics_view, name='recruitment_analytics'),
-
-    # --- URL liên quan đến một Vị trí tuyển dụng cụ thể (Job Posting) ---
     path('job/<int:job_id>/', views.job_detail, name='job_detail'),
     path('job/<int:job_id>/edit/', views.edit_job_view, name='edit_job'),
     path('job/<int:job_id>/delete/', views.delete_job_view, name='delete_job'),
     path('job/<int:job_id>/applicants/', views.applicant_list_view, name='applicant_list'),
-
-    # --- URL liên quan đến một Hồ sơ ứng tuyển cụ thể (Application) ---
     path('application/<int:application_id>/re-analyze/', views.re_analyze_application_view, name='re_analyze_application'),
-    path('application/<int:application_id>/invite/', views.send_interview_invitation_view, name='send_invitation'),
+    path('application/<int:application_id>/confirm/', views.confirm_interview_view, name='confirm_interview'),
     path('application/<int:job_id>/apply-with-profile/', views.apply_with_profile_view, name='apply_with_profile'),
+    path('my-applications/', views.my_applications_view, name='my_applications'),
+    path('application/<int:application_id>/chat/', views.chat_view, name='chat_view'),
+    path('my-messages/', views.my_messages_view, name='my_messages'),
+    path('job/<int:job_id>/clone/', views.clone_job_view, name='clone_job'),
+    path('dashboard/archived/', views.archived_job_list_view, name='archived_job_list'),
+    path('job/<int:job_id>/hard-delete/', views.hard_delete_job_view, name='hard_delete_job'),
+    path('application/<int:application_id>/process/', views.process_application_view, name='process_application'),
+    path('api/analytics-summary/', views.analytics_summary_api, name='analytics_summary_api'),
+    path('application/<int:application_id>/result/', views.application_result_view, name='application_result'),
 ]

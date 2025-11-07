@@ -1,0 +1,117 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Xử lý hồ sơ ứng tuyển{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1 class="card-title">Xử lý hồ sơ ứng tuyển</h1>
+        <p>Quyết định của bạn cho ứng viên <strong>{{ application.candidate.username }}</strong> (vị trí: <strong>"{{ application.job.title }}"</strong>).</p>
+        <p>AI sẽ giúp bạn soạn một email thông báo chuyên nghiệp.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Quyết định của bạn:</label>
+                
+                {% if current_status == 'pending' %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="decision" id="decision_invite" value="invite" checked>
+                    <label class="form-check-label" for="decision_invite">
+                        Mời phỏng vấn (Hồ sơ đạt)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="decision" id="decision_reject_cv" value="reject_cv">
+                    <label class="form-check-label" for="decision_reject_cv">
+                        Từ chối (Hồ sơ không đạt)
+                    </label>
+                </div>
+                
+                {% elif current_status == 'confirmed' %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="decision" id="decision_pass" value="pass" checked>
+                    <label class="form-check-label" for="decision_pass">
+                        Trúng tuyển
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="decision" id="decision_reject_interview" value="reject_interview">
+                    <label class="form-check-label" for="decision_reject_interview">
+                        Từ chối (Không đạt phỏng vấn)
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="invite_details">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="interview_time" class="form-label">Chọn giờ phỏng vấn</label>
+                        <input type="time" class="form-control" id="interview_time" name="interview_time">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="interview_date" class="form-label">Chọn ngày phỏng vấn</label>
+                        <input type="date" class="form-control" id="interview_date" name="interview_date">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="interview_location" class="form-label">Địa điểm phỏng vấn (hoặc link Online)</label>
+                    <input type="text" class="form-control" id="interview_location" name="interview_location" placeholder="Ví dụ: Văn phòng JobAI, Tầng 10, 123 Nguyễn Huệ, Q1, TP.HCM">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="custom_message" class="form-label">Ghi chú thêm (Không bắt buộc)</label>
+                <textarea class="form-control" id="custom_message" name="custom_message" rows="3" placeholder="Ví dụ: Vui lòng mang theo máy tính xách tay (nếu mời PV) hoặc Chúc bạn may mắn lần sau (nếu từ chối)."></textarea>
+            </div>
+            
+            <a href="{% url 'applicant_list' application.job.id %}" class="btn btn-secondary">Hủy</a>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                <span id="btn-text">Gửi thông báo (AI soạn thảo)</span>
+                <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const radios = document.querySelectorAll('input[name="decision"]');
+    const inviteDetails = document.getElementById('invite_details');
+    const timeInput = document.getElementById('interview_time');
+    const dateInput = document.getElementById('interview_date');
+    const locationInput = document.getElementById('interview_location');
+
+    function toggleInviteDetails() {
+        const inviteRadio = document.getElementById('decision_invite');
+        const inviteChecked = inviteRadio ? inviteRadio.checked : false;
+        
+        if (inviteChecked) {
+            inviteDetails.style.display = 'block';
+            timeInput.required = true;
+            dateInput.required = true;
+            locationInput.required = true;
+        } else {
+            inviteDetails.style.display = 'none';
+            timeInput.required = false;
+            dateInput.required = false;
+            locationInput.required = false;
+        }
+    }
+    
+    radios.forEach(radio => radio.addEventListener('change', toggleInviteDetails));
+    
+    toggleInviteDetails();
+
+    const aiForm = document.querySelector('form');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    aiForm.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        btnText.textContent = 'AI đang xử lý, vui lòng chờ...';
+        loadingSpinner.classList.remove('d-none');
+    });
+</script>
+{% endblock %}

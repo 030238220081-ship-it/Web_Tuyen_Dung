@@ -1,0 +1,38 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Hộp thư đến{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Hộp thư đến</h1>
+
+<div class="list-group">
+    {% for app in applications_with_messages %}
+        <a href="{% url 'chat_view' app.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                
+                <h5 class="mb-1">
+                    {{ app.job.title }}
+                    
+                    {% if app.unread_count > 0 %}
+                        <span class="badge bg-danger ms-2">{{ app.unread_count }} Mới</span>
+                    {% endif %}
+                </h5>
+                
+                <small class="text-muted">{{ app.last_message_time|date:"H:i, d/m/Y" }}</small>
+            </div>
+            
+            <p class="mb-1 text-muted">
+                {% if user.user_type == 'candidate' %}
+                    Trò chuyện với Nhà tuyển dụng: {{ app.job.recruiter.username }}
+                {% else %}
+                    Trò chuyện với Ứng viên: {{ app.candidate.username }}
+                {% endif %}
+            </p>
+        </a>
+    {% empty %}
+        <div class="alert alert-info">
+            <p class="mb-0">Bạn chưa có cuộc trò chuyện nào.</p>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

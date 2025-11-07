@@ -22,3 +22,5 @@ media/
 
 # Bỏ qua file chứa biến môi trường
 .env
+
+/scripts/*.json

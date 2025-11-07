@@ -28,6 +28,14 @@
             <input type="number" class="form-control" name="quantity" id="quantity" value="{{ job.quantity }}">
         </div>
         <div class="mb-3">
+                <label for="category" class="form-label">Ngành nghề:</label>
+                <select class="form-select" name="category" id="category">
+                    {% for value, display in categories %}
+                        <option value="{{ value }}" {% if job.category == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        <div class="mb-3">
             <label for="benefits" class="form-label">Phúc lợi:</label>
             <textarea class="form-control" name="benefits" id="benefits" rows="4">{{ job.benefits }}</textarea>
         </div>

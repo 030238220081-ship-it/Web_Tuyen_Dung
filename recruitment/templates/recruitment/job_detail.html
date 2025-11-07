@@ -5,28 +5,36 @@
 <div class="card">
     <div class="card-header">
         <h1 class="card-title h2">{{ job.title }}</h1>
-        <p class="card-subtitle text-muted">Đăng bởi: {{ job.recruiter.username }} vào ngày {{ job.created_at|date:"d/m/Y" }}</p>
-    </div>
+        
+        <div class="d-flex align-items-center text-muted mt-2">
+            {% if job.recruiter.profile.avatar %}
+                <img src="{{ job.recruiter.profile.avatar.url }}" alt="{{ job.recruiter.username }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+            {% else %}
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+            {% endif %}
+            <span>Đăng bởi: <strong>{{ job.recruiter.username }}</strong> vào ngày {{ job.created_at|date:"d/m/Y" }}</span>
+        </div>
+        </div>
     <div class="card-body">
-    <div class="row mb-4">
-        {% if job.location %}
-        <div class="col-md-4">
-            <strong><i class="bi bi-geo-alt-fill"></i> Địa điểm:</strong>
-            <p>{{ job.location }}</p>
+        <div class="row mb-4">
+            {% if job.location %}
+            <div class="col-md-4">
+                <strong><i class="bi bi-geo-alt-fill"></i> Địa điểm:</strong>
+                <p>{{ job.location }}</p>
+            </div>
+            {% endif %}
+            {% if job.salary %}
+            <div class="col-md-4">
+                <strong><i class="bi bi-cash-stack"></i> Mức lương:</strong>
+                <p>{{ job.salary }}</p>
+            </div>
+            {% endif %}
+            <div class="col-md-4">
+                <strong><i class="bi bi-people-fill"></i> Số lượng:</strong>
+                <p>{{ job.quantity }}</p>
+            </div>
         </div>
-        {% endif %}
-        {% if job.salary %}
-        <div class="col-md-4">
-            <strong><i class="bi bi-cash-stack"></i> Mức lương:</strong>
-            <p>{{ job.salary }}</p>
-        </div>
-        {% endif %}
-        <div class="col-md-4">
-            <strong><i class="bi bi-people-fill"></i> Số lượng:</strong>
-            <p>{{ job.quantity }}</p>
-        </div>
-    </div>
-    <div class="card-body">
+        
         <h4 class="mt-2">Mô tả công việc</h4>
         <div style="white-space: pre-wrap;">{{ job.description|linebreaks }}</div>
         <hr>
@@ -35,25 +43,65 @@
             <h4>Công cụ quản lý</h4>
             <p>Bạn đang xem tin tuyển dụng với tư cách Nhà tuyển dụng.</p>
             <a href="{% url 'applicant_list' job.id %}" class="btn btn-info">Xem danh sách ứng viên</a>
-            {% elif user.is_authenticated and user.user_type == 'candidate' %}
-            <h4>Ứng tuyển cho vị trí này</h4>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label for="cv" class="form-label">Tải lên CV của bạn (PDF, DOCX):</label>
-                    <input class="form-control" type="file" id="cv" name="cv" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Nộp hồ sơ</button>
-            </form>
 
-        {% else %}
+        {% elif user.is_authenticated and user.user_type == 'candidate' %}
+            
+            {% if my_application %}
+                <div class="alert alert-success">
+                    Bạn đã ứng tuyển vào vị trí này ngày {{ my_application.applied_at|date:"d/m/Y" }}. 
+                    <a href="{% url 'chat_view' my_application.id %}" class="btn btn-info btn-sm">Chat với Nhà tuyển dụng</a>
+                </div>
+            {% else %}
+                <h4>Ứng tuyển (Kèm Phân tích AI)</h4>
+                <form method="post" enctype="multipart/form-data" id="apply-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="cv" class="form-label">Tải lên CV (PDF, DOCX):</label>
+                        <input class="form-control" type="file" id="cv" name="cv" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="set_as_default" id="set_as_default" checked>
+                        <label class="form-check-label" for="set_as_default">
+                            Cập nhật CV này làm CV mặc định cho các tính năng AI
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="submit-btn-apply">
+                        <span id="btn-text">Phân tích & Nộp hồ sơ (Tải CV mới)</span>
+                        <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
+                    </button>
+                    
+                    <a href="{% url 'apply_with_profile' job.id %}" class="btn btn-outline-primary">Nộp hồ sơ (Dùng CV trong hồ sơ)</a>
+                </form>
+            {% endif %}
+            {% else %}
             <div class="alert alert-info">
                 <a href="{% url 'login' %}?next={{ request.path }}">Đăng nhập</a> để ứng tuyển cho vị trí này.
             </div>
         {% endif %}
-        </div>
+    </div>
     <div class="card-footer">
         <a href="{% url 'job_list' %}">Quay lại danh sách công việc</a>
     </div>
 </div>
+
+<script>
+    // Script cho nút loading
+    const applyForm = document.getElementById('apply-form');
+    if (applyForm) {
+        const submitBtn = document.getElementById('submit-btn-apply');
+        const btnText = document.getElementById('btn-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        applyForm.addEventListener('submit', function() {
+            // Kiểm tra xem file đã được chọn chưa
+            const cvInput = document.getElementById('cv');
+            if (cvInput.files.length > 0) {
+                submitBtn.disabled = true;
+                btnText.textContent = 'AI đang phân tích, vui lòng chờ...';
+                loadingSpinner.classList.remove('d-none');
+            }
+        });
+    }
+</script>
 {% endblock %}

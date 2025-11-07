@@ -1,0 +1,74 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Đã nộp hồ sơ thành công{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        
+        <div class="alert alert-success text-center">
+            <h4 class="alert-heading">Nộp hồ sơ thành công!</h4>
+            <p>Bạn đã ứng tuyển vào vị trí <strong>{{ application.job.title }}</strong>.</p>
+        </div>
+
+        {% if analysis %}
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <h1 class="h2">🤖 Phân tích CV của bạn (cho vị trí này) 🤖</h1>
+                </div>
+                
+                <div class="mb-4">
+                    <h5 class="text-center">Mức độ phù hợp</h5>
+                    <div class="progress" style="height: 25px;">
+                        <div id="score-bar" class="progress-bar" role="progressbar" 
+                             style="width: {{ analysis.score }}%;" 
+                             aria-valuenow="{{ analysis.score }}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                             {{ analysis.score }}%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-hand-thumbs-up-fill"></i> <strong>Điểm mạnh</strong>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                {% for item in analysis.strengths %}
+                                <li class="list-group-item">{{ item }}</li>
+                                {% empty %}
+                                <li class="list-group-item">AI không tìm thấy điểm mạnh cụ thể.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="bi bi-lightbulb-fill"></i> <strong>Gợi ý cải thiện</strong>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                {% for item in analysis.suggestions %}
+                                <li class="list-group-item">{{ item }}</li>
+                                {% empty %}
+                                <li class="list-group-item">CV của bạn rất tốt!</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'my_applications' %}" class="btn btn-primary">Xem quản lý ứng tuyển</a>
+            <a href="{% url 'job_board' %}" class="btn btn-secondary">Quay lại tìm việc</a>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

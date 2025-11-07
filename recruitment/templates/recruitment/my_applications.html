@@ -1,0 +1,47 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Quản lý ứng tuyển{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Quản lý các vị trí đã ứng tuyển</h1>
+<p>Theo dõi trạng thái các hồ sơ bạn đã gửi đi.</p>
+
+{% for app in applications %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <h4 class="card-title">{{ app.job.title }}</h4>
+                <p class="card-text text-muted mb-1">Công ty: {{ app.job.recruiter.username }}</p>
+                <p class="card-text text-muted">Ngày nộp: {{ app.applied_at|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <h5 class="mb-2">Trạng thái</h5>
+                
+                {% if app.status == 'passed' %}
+                    <span class="badge bg-success fs-6">Đã trúng tuyển</span>
+                {% elif app.status == 'rejected' %}
+                    <span class="badge bg-danger fs-6">Đã từ chối</span>
+                {% elif app.status == 'confirmed' %}
+                    <span class="badge bg-primary fs-6">Đã xác nhận phỏng vấn</span>
+                {% elif app.status == 'invited' %}
+                    <span class="badge bg-info fs-6">Đã mời phỏng vấn</span>
+                {% else %}
+                    <span class="badge bg-secondary fs-6">Chờ xử lý</span>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <a href="{% url 'job_detail' app.job.id %}" class="btn btn-sm btn-outline-secondary">Xem JD</a>
+                    <a href="{% url 'chat_view' app.id %}" class="btn btn-sm btn-info">Chat</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+    <div class="alert alert-info">
+        <p class="mb-0">Bạn chưa ứng tuyển vào vị trí nào.</p>
+        <a href="{% url 'job_board' %}" class="alert-link">Tìm việc ngay!</a>
+    </div>
+{% endfor %}
+
+{% endblock %}

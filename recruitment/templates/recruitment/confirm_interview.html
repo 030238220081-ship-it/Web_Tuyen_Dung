@@ -1,0 +1,20 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Xác nhận phỏng vấn{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1 class="card-title">Xác nhận lịch phỏng vấn</h1>
+        <p>Nhà tuyển dụng <strong>{{ application.job.recruiter.username }}</strong> đã gửi cho bạn lời mời phỏng vấn cho vị trí:</p>
+        <h4 class="text-primary">"{{ application.job.title }}"</h4>
+        
+        <p>Vui lòng xác nhận để nhà tuyển dụng sắp xếp bước tiếp theo.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <a href="{% url 'notifications' %}" class="btn btn-secondary">Để sau</a>
+            <button type="submit" class="btn btn-success">Vâng, tôi xác nhận tham gia</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

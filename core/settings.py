@@ -8,25 +8,17 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-
-
-# === SỬA LỖI 1: XÓA 'https://' KHỎI ALLOWED_HOSTS ===
 ALLOWED_HOSTS = ['web-tuyen-dung-moyp.onrender.com', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
-    # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    # Third-party apps
     'cloudinary_storage',
     'cloudinary',
-
-    # Your apps
     'recruitment',
 ]
 
@@ -46,8 +38,6 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
-        # This line tells Django to look for templates inside app directories
-        # (like the admin app's templates).
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -55,7 +45,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                # Your custom context processor
                 'recruitment.context_processors.notifications_context',
             ],
         },
@@ -66,7 +55,6 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 if os.getenv('RENDER'):
-    # Nếu đang chạy trên Render, sử dụng PostgreSQL
     DATABASES = {
         'default': dj_database_url.config(
             conn_max_age=600,
@@ -74,7 +62,6 @@ if os.getenv('RENDER'):
         )
     }
 else:
-    # Nếu đang chạy trên máy tính (local), sử dụng SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -82,11 +69,16 @@ else:
         }
     }
 
-
-# --- Password validation (Giữ nguyên) ---
-AUTH_PASSWORD_VALIDATORS = [
-    # ... (Giữ nguyên phần này) ...
+AUTH_PASSWORD_VALIDATORS = [   
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('nguyenquochung14022004@gmail.com') # Email của bạn
+EMAIL_HOST_PASSWORD = os.getenv('Hungnq142@') # Mật khẩu ứng dụng
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'

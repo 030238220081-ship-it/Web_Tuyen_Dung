@@ -5,6 +5,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2">Dashboard Nhà tuyển dụng</h1>
     <div>
+        <a href="{% url 'archived_job_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-archive-fill"></i> Xem kho lưu trữ
+        </a>
         <a href="{% url 'recruitment_analytics' %}" class="btn btn-success">
             <i class="bi bi-graph-up"></i> Xem Phân tích & Báo cáo
         </a>
@@ -57,7 +60,7 @@
                         <td class="align-middle">
                             <a href="{% url 'applicant_list' job.id %}" class="btn btn-sm btn-info">Xem ứng viên</a>
                             <a href="{% url 'edit_job' job.id %}" class="btn btn-sm btn-warning">Sửa</a>
-                            <a href="{% url 'delete_job' job.id %}" class="btn btn-sm btn-danger">Xóa</a>
+                            <a href="{% url 'delete_job' job.id %}" class="btn btn-sm btn-danger">Lưu trữ</a>
                         </td>
                     </tr>
                     {% empty %}

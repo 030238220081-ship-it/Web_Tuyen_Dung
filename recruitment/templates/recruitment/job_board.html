@@ -2,29 +2,86 @@
 {% block title %}Danh sách Việc làm{% endblock %}
 
 {% block content %}
+
+<style>
+    .job-description-preview {
+        word-wrap: break-word; /* Bẻ gãy từ quá dài */
+        overflow-wrap: break-word;
+        white-space: pre-wrap; /* Tôn trọng các dấu xuống dòng từ AI */
+    }
+    
+    /* Hiệu ứng hover cho thẻ JD */
+    .job-card {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+    .job-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0.5rem 1rem rgba(0, 123, 255, 0.25) !important;
+        z-index: 1;
+    }
+</style>
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="get" action="{% url 'job_board' %}">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="q" placeholder="Nhập tiêu đề, kỹ năng..." value="{{ search_values.q }}">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="location" placeholder="Địa điểm..." value="{{ search_values.location }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="category">
+                        <option value="">Tất cả ngành nghề</option>
+                        {% for value, display in categories %}
+                            <option value="{{ value }}" {% if search_values.category == value %}selected{% endif %}>{{ display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1 d-grid">
+                    <button type="submit" class="btn btn-primary">Tìm</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <h2 class="mb-4 fw-bold">Vị trí đang tuyển dụng</h2>
 <div class="row">
     {% for job in jobs %}
     <div class="col-md-12 mb-4">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm border-0 job-card">
             <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title mb-1">{{ job.title }}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-geo-alt-fill"></i> {{ job.location }}</h6>
+                
+                <div class="d-flex justify-content-between">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0 me-3">
+                            {% if job.recruiter.profile.avatar %}
+                                <img src="{{ job.recruiter.profile.avatar.url }}" alt="{{ job.recruiter.username }}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                            {% else %}
+                                <i class="bi bi-person-circle" style="font-size: 50px; color: #ccc;"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ job.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-geo-alt-fill"></i> {{ job.location|default:"Đang cập nhật" }}</h6>
+                        </div>
                     </div>
-                    <div>
+                    <div class="flex-shrink-0">
                         <a href="{% url 'job_detail' job.id %}" class="btn btn-outline-primary">Xem chi tiết & Ứng tuyển</a>
                     </div>
                 </div>
+                
                 <hr>
-                <p class="card-text">{{ job.description|truncatewords:40 }}</p>
-            </div>
+                
+                <p class="card-text job-description-preview">{{ job.description|truncatewords:40 }}</p>
+                </div>
         </div>
     </div>
     {% empty %}
     <div class="col-12">
-        <div class="alert alert-info">Hiện chưa có tin tuyển dụng nào.</div>
+        <div class="alert alert-info">Không tìm thấy tin tuyển dụng nào phù hợp với yêu cầu của bạn.</div>
     </div>
     {% endfor %}
 </div>

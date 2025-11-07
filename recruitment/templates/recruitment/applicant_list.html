@@ -13,16 +13,38 @@
 
 {% for application in applications %}
 <div class="card mb-3">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="mb-0">
             Ứng viên: {{ application.candidate.profile.full_name|default:application.candidate.username }}
         </h4>
+        
+        {% if application.status == 'passed' %}
+            <span class="badge bg-success">Đã trúng tuyển</span>
+        {% elif application.status == 'rejected' %}
+            <span class="badge bg-danger">Đã từ chối</span>
+        {% elif application.status == 'confirmed' %}
+            <span class="badge bg-primary">Đã xác nhận phỏng vấn</span>
+        {% elif application.status == 'invited' %}
+            <span class="badge bg-info">Đã gửi lời mời</span>
+        {% else %}
+            <span class="badge bg-secondary">Chờ xử lý</span>
+        {% endif %}
     </div>
     <div class="card-body">
         <div class="row">
             <div class="col-md-7">
-                <p><strong>Ngày nộp:</strong> {{ application.created_at|date:"H:i, d/m/Y" }}</p>
-                <a href="{{ application.cv.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Xem CV gốc</a>
+                <p><strong>Ngày nộp:</strong> {{ application.applied_at|date:"H:i, d/m/Y" }}</p>
+                
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ application.cv.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Xem CV gốc</a>
+                    <a href="{% url 'chat_view' application.id %}" class="btn btn-sm btn-info">Chat</a>
+                    
+                    {% if application.status == 'pending' or application.status == 'confirmed' %}
+                        <a href="{% url 'process_application' application.id %}" class="btn btn-sm btn-success">
+                            <i class="bi bi-check-circle-fill"></i> Xử lý hồ sơ
+                        </a>
+                    {% endif %}
+                    </div>
             </div>
 
             <div class="col-md-5 border-start">

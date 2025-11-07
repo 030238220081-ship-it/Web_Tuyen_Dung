@@ -9,6 +9,23 @@ class CustomUser(AbstractUser):
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
 
 class JobPosting(models.Model):
+
+    CATEGORY_CHOICES = (
+        ('IT', 'Công nghệ thông tin'),
+        ('BA', 'Business Analyst'),
+        ('Tester', 'Kiểm thử phần mềm'),
+        ('HR', 'Nhân sự'),
+        ('Marketing', 'Marketing'),
+        ('Sales', 'Kinh doanh'),
+        ('Other', 'Khác'),
+    )
+    category = models.CharField(
+        max_length=50, 
+        choices=CATEGORY_CHOICES, 
+        default='Other', 
+        verbose_name="Ngành nghề"
+    )
+    
     recruiter = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -17,12 +34,20 @@ class JobPosting(models.Model):
     quantity = models.PositiveIntegerField(default=1, verbose_name="Số lượng tuyển")
     benefits = models.TextField(blank=True, null=True, verbose_name="Phúc lợi")
     created_at = models.DateTimeField(auto_now_add=True)
-    time_limit = models.PositiveIntegerField(default=15, verbose_name="Thời gian làm bài (phút)")
-
+    is_archived = models.BooleanField(default=False, verbose_name="Đã lưu trữ ")
     def __str__(self):
         return self.title
 
 class Application(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Chờ xử lý'),
+        ('invited', 'Đã mời phỏng vấn'),
+        ('confirmed', 'Đã xác nhận phỏng vấn'),
+        ('rejected', 'Đã từ chối'),
+        ('passed', 'Đã trúng tuyển'), 
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="Trạng thái")
+    
     job = models.ForeignKey(JobPosting, on_delete=models.CASCADE, related_name='application')
     candidate = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     cv = models.FileField(upload_to='cvs/')
@@ -46,22 +71,27 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-
-class Interview(models.Model):
-    application = models.OneToOneField(Application, on_delete=models.CASCADE, verbose_name="Hồ sơ ứng tuyển")
-    hr_notes = models.TextField(verbose_name="Ghi chú của HR (Câu trả lời của UV)")
-    ai_analysis = models.JSONField(null=True, blank=True, verbose_name="Phân tích chi tiết từ AI")
-    ai_score = models.IntegerField(default=0, verbose_name="Điểm phỏng vấn từ AI")
-    interview_date = models.DateTimeField(auto_now_add=True, verbose_name="Ngày phỏng vấn")
-
-    def __str__(self):
-        return f"Phỏng vấn cho {self.application.candidate.username} vị trí {self.application.job.title}"
     
 class Profile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=255, blank=True)
     cv_file = models.FileField(upload_to='cvs/', blank=True, null=True)
     summary = models.TextField(default='', blank=True, verbose_name="Tóm tắt bản thân")
-
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name="Ảnh đại diện")
+    
     def __str__(self):
         return self.user.username
+    
+class DirectMessage(models.Model):
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='messages', verbose_name="Hồ sơ")
+    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_messages', verbose_name="Người gửi")
+    recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='received_messages', verbose_name="Người nhận")
+    content = models.TextField(verbose_name="Nội dung")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian")
+    is_read = models.BooleanField(default=False, verbose_name="Đã đọc")
+
+    def __str__(self):
+        return f"Tin nhắn từ {self.sender.username} đến {self.recipient.username}"
+
+    class Meta:
+        ordering = ['timestamp']

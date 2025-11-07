@@ -27,8 +27,13 @@
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-    <h1 class="h2">📊 Trang phân tích Tuyển dụng</h1>
-    <button class="btn btn-secondary" onclick="window.print()"><i class="bi bi-printer"></i> In báo cáo</button>
+    <h1 class="h2">📊 Dashboard Phân tích Tuyển dụng</h1>
+    <div>
+        <button class="btn btn-primary" id="ai-analysis-btn" data-bs-toggle="modal" data-bs-target="#aiAnalysisModal">
+            <i class="bi bi-magic"></i> AI Phân tích nhanh
+        </button>
+        <button class="btn btn-secondary" onclick="window.print()"><i class="bi bi-printer"></i> In báo cáo</button>
+    </div>
 </div>
 
 <div class="card mb-4 no-print">
@@ -43,15 +48,17 @@
                     {% endfor %}
                 </select>
             </div>
+            
             <div class="col-md-4">
-                <label for="job_id" class="form-label">Lọc theo vị trí</label>
-                <select name="job_id" id="job_id" class="form-select">
+                <label for="job_title" class="form-label">Lọc theo vị trí</label>
+                <select name="job_title" id="job_title" class="form-select">
                     <option value="">-- Tất cả các vị trí --</option>
-                    {% for job in all_jobs_for_filter %}
-                        <option value="{{ job.id }}" {% if selected_job_id == job.id %}selected{% endif %}>{{ job.title }}</option>
+                    {% for title in all_job_titles_for_filter %}
+                        <option value="{{ title }}" {% if selected_job_title == title %}selected{% endif %}>{{ title }}</option>
                     {% endfor %}
                 </select>
             </div>
+            
             <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary me-2">Lọc</button>
                 <a href="{% url 'recruitment_analytics' %}" class="btn btn-outline-secondary">Xóa bộ lọc</a>
@@ -60,17 +67,76 @@
     </div>
 </div>
 
+<div class="row mb-4 printable-area" id="kpi-data-container"
+     data-total-applications="{{ total_applications }}"
+     data-response-rate="{{ response_rate }}"
+     data-invited-count="{{ invited_count }}"
+     data-avg-ai-score="{{ avg_ai_score }}">
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card kpi-card shadow h-100 py-2" style="border-left-color: #0d6efd;">
+            <div class="card-body">
+                <div class="card-title text-uppercase">Tổng hồ sơ đã nhận</div>
+                <div class="card-text">{{ total_applications }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card kpi-card shadow h-100 py-2" style="border-left-color: #198754;">
+            <div class="card-body">
+                <div class="card-title text-uppercase">Tỷ lệ phản hồi</div>
+                <div class="card-text">{{ response_rate }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card kpi-card shadow h-100 py-2" style="border-left-color: #ffc107;">
+            <div class="card-body">
+                <div class="card-title text-uppercase">Số hồ sơ đã mời PV</div>
+                <div class="card-text">{{ invited_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card kpi-card shadow h-100 py-2" style="border-left-color: #dc3545;">
+            <div class="card-body">
+                <div class="card-title text-uppercase">Điểm phù hợp trung bình</div>
+                <div class="card-text">{{ avg_ai_score }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row printable-area">
     <div class="col-lg-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">Báo cáo Thực hiện KPI tuyển dụng theo vị trí</div>
+        <div class="card h-100 shadow">
+            <div class="card-header">Phễu Tuyển dụng (Thống kê trạng thái)</div>
             <div class="card-body">
-                <canvas id="stackedBarChart"></canvas>
+                <canvas id="funnelChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-6 mb-4">
-        <div class="card h-100">
+        <div class="card h-100 shadow">
+            <div class="card-header">Xu hướng hồ sơ nộp theo ngày</div>
+            <div class="card-body">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row printable-area">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100 shadow">
+            <div class="card-header">Báo cáo Thực hiện KPI tuyển dụng theo vị trí</div>
+            <div class="card-body">
+                <canvas id="groupedBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100 shadow">
             <div class="card-header">Báo cáo Tỷ lệ hoàn thành KPI tuyển dụng theo vị trí</div>
             <div class="card-body">
                 <canvas id="kpiCompletionChart"></canvas>
@@ -79,19 +145,44 @@
     </div>
 </div>
 
+<div class="modal fade" id="aiAnalysisModal" tabindex="-1" aria-labelledby="aiAnalysisModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiAnalysisModalLabel">🤖 Phân tích nhanh từ AI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="ai-analysis-content">
+                <div class="text-center p-3">
+                    <span class="spinner-border text-primary" role="status"></span>
+                    <p class="mt-2">AI đang phân tích dữ liệu, vui lòng chờ...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // === Lấy dữ liệu từ Django (cho biểu đồ) ===
     const jobTitles = {{ job_titles_comparison_json|safe }};
     const actualApplications = {{ actual_applications_json|safe }};
     const plannedQuantity = {{ planned_quantity_json|safe }};
     const kpiPercentages = {{ kpi_percentages_json|safe }};
     const chartColors = {{ chart_colors_json|safe }};
-    // === SỬA LỖI: THÊM DÒNG NÀY ĐỂ KHAI BÁO BIẾN ===
     const dynamicLabel = "{{ dynamic_label|safe }}";
+    
+    // Dữ liệu mới
+    const funnelLabels = {{ funnel_labels_json|safe }};
+    const funnelData = {{ funnel_data_json|safe }};
+    const trendLabels = {{ trend_labels_json|safe }};
+    const trendCounts = {{ trend_counts_json|safe }};
 
-    // --- Biểu đồ 1: Thực hiện KPI (VỚI TOOLTIP NÂNG CẤP) ---
-    const stackedBarCtx = document.getElementById('stackedBarChart');
-    new Chart(stackedBarCtx, {
+    // --- Biểu đồ 1: Thực hiện KPI (SỬA LỖI: stacked: false) ---
+    const groupedBarCtx = document.getElementById('groupedBarChart');
+    new Chart(groupedBarCtx, {
         type: 'bar',
         data: {
             labels: jobTitles,
@@ -99,8 +190,8 @@
                 {
                     label: 'Kế hoạch',
                     data: plannedQuantity,
-                    backgroundColor: chartColors.map(color => color.replace('0.7', '0.4')),
-                    borderColor: chartColors.map(color => color.replace('0.7', '1')),
+                    backgroundColor: 'rgba(108, 117, 125, 0.7)',
+                    borderColor: 'rgba(108, 117, 125, 1)',
                     borderWidth: 1
                 },
                 {
@@ -115,32 +206,13 @@
         options: {
             responsive: true,
             scales: {
-                x: { stacked: true },
+                x: { stacked: false }, // <-- ĐÃ SỬA: false
                 y: { beginAtZero: true }
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        title: function(context) {
-                            return context[0].label;
-                        },
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y;
-                            }
-                            return label;
-                        }
-                    }
-                }
             }
         }
     });
 
-    // --- Biểu đồ 2: Tỷ lệ hoàn thành KPI (cũng được nâng cấp tooltip) ---
+// --- Biểu đồ 2: Tỷ lệ hoàn thành KPI (Giữ nguyên) ---
     const kpiCompletionCtx = document.getElementById('kpiCompletionChart');
     new Chart(kpiCompletionCtx, {
         type: 'bar',
@@ -170,6 +242,133 @@
             }
         }
     });
+
+    // --- Biểu đồ 3 (MỚI): Phễu Tuyển dụng (Pie Chart) ---
+    const funnelCtx = document.getElementById('funnelChart');
+    new Chart(funnelCtx, {
+        type: 'pie',
+        data: {
+            labels: funnelLabels,
+            datasets: [{
+                label: 'Số lượng hồ sơ',
+                data: funnelData,
+                backgroundColor: [
+                    'rgba(108, 117, 125, 0.7)', // pending (Xám)
+                    'rgba(13, 202, 240, 0.7)', // invited (Xanh lơ)
+                    'rgba(0, 123, 255, 0.7)', // confirmed (Xanh dương)
+                    'rgba(255, 193, 7, 0.7)',  // passed (Vàng)
+                    'rgba(220, 53, 69, 0.7)'  // rejected (Đỏ)
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            return label + ': ' + value + ' hồ sơ';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // --- Biểu đồ 4 (MỚI): Xu hướng hồ sơ (Line Chart) ---
+    const trendCtx = document.getElementById('trendChart');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Số hồ sơ nộp',
+                data: trendCounts,
+                fill: true,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    document.getElementById('ai-analysis-btn').addEventListener('click', async function() {
+        const modalContent = document.getElementById('ai-analysis-content');
+        
+        // 1. Reset modal về trạng thái loading
+        modalContent.innerHTML = `
+            <div class="text-center p-3">
+                <span class="spinner-border text-primary" role="status"></span>
+                <p class="mt-2">AI đang phân tích dữ liệu, vui lòng chờ...</p>
+            </div>`;
+
+        // 2. Thu thập dữ liệu từ các thẻ KPI và biểu đồ phễu
+        const kpiContainer = document.getElementById('kpi-data-container');
+        const kpiData = {
+            total_applications: kpiContainer.dataset.totalApplications,
+            response_rate: kpiContainer.dataset.responseRate,
+            invited_count: kpiContainer.dataset.invitedCount,
+            avg_ai_score: kpiContainer.dataset.avgAiScore
+        };
+
+        const funnelJSData = {};
+        funnelLabels.forEach((label, index) => {
+            funnelJSData[label] = funnelData[index];
+        });
+        
+        // 3. Lấy CSRF token
+        const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        
+        // 4. Gọi API
+        try {
+            const response = await fetch("{% url 'analytics_summary_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken ? csrftoken.value : '{{ csrf_token }}' // Fallback
+                },
+                body: JSON.stringify({
+                    kpi_data: kpiData,
+                    funnel_data: funnelJSData
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Lỗi máy chủ khi gọi AI.');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 5. Hiển thị kết quả (chuyển đổi xuống dòng)
+                modalContent.innerHTML = result.analysis.replace(/\n/g, '<br>');
+            } else {
+                modalContent.innerText = 'Lỗi: ' + result.error;
+            }
+        
+        } catch (error) {
+            console.error('Lỗi khi fetch AI analysis:', error);
+            modalContent.innerText = 'Đã xảy ra lỗi kết nối. Vui lòng thử lại.';
+        }
+    });
+
 </script>
 
 {% endblock %}

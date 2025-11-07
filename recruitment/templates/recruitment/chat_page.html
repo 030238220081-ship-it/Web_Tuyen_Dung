@@ -1,0 +1,92 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Chat về vị trí {{ application.job.title }}{% endblock %}
+
+{% block content %}
+<style>
+    .chat-container {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        max-height: 60vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-header {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-bottom: 1px solid #ccc;
+    }
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .message-bubble {
+        padding: 0.75rem 1rem;
+        border-radius: 18px;
+        margin-bottom: 0.5rem;
+        max-width: 70%;
+        line-height: 1.5;
+    }
+    .message-sent {
+        background-color: #007bff;
+        color: white;
+        align-self: flex-end;
+    }
+    .message-received {
+        background-color: #e9ecef;
+        color: #333;
+        align-self: flex-start;
+    }
+    .message-form {
+        border-top: 1px solid #ccc;
+        padding: 1rem;
+    }
+</style>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h4 class="mb-0">Cuộc trò chuyện về vị trí: {{ application.job.title }}</h4>
+        {% if user.user_type == 'recruiter' %}
+            <p class="mb-0 text-muted">Với ứng viên: {{ application.candidate.username }}</p>
+        {% else %}
+            <p class="mb-0 text-muted">Với nhà tuyển dụng: {{ application.job.recruiter.username }}</p>
+        {% endif %}
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        {% for message in messages %}
+            {% if message.sender == user %}
+                <div class="message-bubble message-sent">
+                    {{ message.content|linebreaks }}
+                    <small class="d-block text-white-50 mt-1">{{ message.timestamp|date:"H:i, d/m/Y" }}</small>
+                </div>
+            {% else %}
+                 <div class="message-bubble message-received">
+                    {{ message.content|linebreaks }}
+                    <small class="d-block text-muted mt-1">{{ message.timestamp|date:"H:i, d/m/Y" }}</small>
+                </div>
+            {% endif %}
+        {% empty %}
+            <p class="text-center text-muted">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</p>
+        {% endfor %}
+    </div>
+
+    <div class="message-form">
+        <form method="post" class="d-flex">
+            {% csrf_token %}
+            <textarea name="content" class="form-control me-2" rows="2" placeholder="Nhập tin nhắn của bạn..." required></textarea>
+            <button type="submit" class="btn btn-primary">Gửi</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Tự động cuộn xuống tin nhắn mới nhất
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+</script>
+{% endblock %}

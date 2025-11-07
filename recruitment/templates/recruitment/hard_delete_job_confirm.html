@@ -1,0 +1,17 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Xác nhận XÓA VĨNH VIỄN{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h1>Xác nhận xóa</h1>
+        <p>Bạn có chắc chắn muốn xóa vĩnh viễn tin tuyển dụng "{{ job.title }}" không?</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <a href="{% url 'archived_job_list' %}" class="btn btn-secondary">Hủy</a>
+            <button type="submit" class="btn btn-danger">Xóa vĩnh viễn</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

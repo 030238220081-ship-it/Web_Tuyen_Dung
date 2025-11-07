@@ -1,12 +1,12 @@
 {% extends 'recruitment/base.html' %}
-{% block title %}Xác nhận xóa{% endblock %}
+{% block title %}Xác nhận lưu trữ{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="card-body">
-        <h1 class="card-title">Xác nhận xóa tin tuyển dụng</h1>
-        <p>Bạn có chắc chắn muốn xóa tin tuyển dụng cho vị trí <strong>"{{ job.title }}"</strong> không?</p>
-        <p class="text-danger">Hành động này không thể hoàn tác.</p>
+        <h1 class="card-title">Xác nhận lưu trữ tin tuyển dụng</h1>
+        <p>Bạn có chắc chắn muốn lưu trữ tin tuyển dụng <strong>"{{ job.title }}"</strong> không?</p>
+        <p class="text-warning">Tin này sẽ bị ẩn khỏi ứng viên và chuyển vào Kho lưu trữ của bạn.</p>
 
         <form method="post">
             {% csrf_token %}

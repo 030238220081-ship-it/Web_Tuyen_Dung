@@ -31,10 +31,57 @@
             transform: scale(1.1);
             color: white;
         }
+
+        /* Hiệu ứng Navbar "Bloom In" */
+        @keyframes bloomIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(-10px); }
+            80% { opacity: 1; transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .navbar-animated {
+            animation: bloomIn 0.7s ease-out forwards;
+            position: relative; 
+            z-index: 1100; /* Sửa lỗi z-index */
+        }
+
+        /* Hiệu ứng laze cho nút */
+        .laser-btn-container {
+            position: relative;
+            padding: 2px; 
+            overflow: hidden;
+            border-radius: 8px; 
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        .laser-btn-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%; 
+            height: 200%;
+            background: conic-gradient(
+                transparent,
+                transparent,
+                #0d6efd,
+                #0dcaf0,
+                transparent 40%
+            );
+            animation: laser-rotate 3s linear infinite;
+        }
+        @keyframes laser-rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to   { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .laser-btn-container .btn {
+            position: relative;
+            z-index: 2;
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm navbar-animated">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold text-primary" href="{% url 'job_list' %}">JobAI 🤖</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -63,7 +110,16 @@
                 </ul>
                 <div class="d-flex align-items-center">
                     {% if user.is_authenticated %}
-                        {% if user.user_type == 'candidate' %}
+                        
+                        <a href="{% url 'my_messages' %}" class="nav-link text-dark position-relative me-3">
+                            <i class="bi bi-chat-dots-fill fs-4"></i>
+                            {% if unread_messages_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ unread_messages_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+
                         <a href="{% url 'notifications' %}" class="nav-link text-dark position-relative me-3">
                             <i class="bi bi-bell-fill fs-4"></i>
                             {% if unread_notifications_count > 0 %}
@@ -73,15 +129,22 @@
                             {% endif %}
                         </a>
 
+                        {% if user.user_type == 'candidate' %}
                         <div class="dropdown">
                             <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person-circle fs-4 me-2"></i>
+                                
+                                {% if user.profile.avatar %}
+                                    <img src="{{ user.profile.avatar.url }}" alt="avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                {% else %}
+                                    <i class="bi bi-person-circle fs-4 me-2"></i>
+                                {% endif %}
                                 <span class="fw-bold">
                                     {% if user.profile.full_name %}{{ user.profile.full_name }}{% else %}{{ user.username }}{% endif %}
                                 </span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'profile' %}">Quản lý CV của tôi</a></li>
+                                <li><a class="dropdown-item" href="{% url 'my_applications' %}">Quản lý ứng tuyển</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{% url 'logout' %}" method="post" class="d-inline">
@@ -92,15 +155,21 @@
                             </ul>
                         </div>
 
-                        {% else %}
-                            <div class="dropdown">
+                        {% else %} <div class="dropdown">
                                 <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle fs-4 me-2"></i>
+                                    
+                                    {% if user.profile.avatar %}
+                                        <img src="{{ user.profile.avatar.url }}" alt="avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                    {% else %}
+                                        <i class="bi bi-person-circle fs-4 me-2"></i>
+                                    {% endif %}
                                     <span class="fw-bold">
                                         {% if user.profile.full_name %}{{ user.profile.full_name }}{% else %}{{ user.username }}{% endif %}
                                     </span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'profile' %}">Cập nhật thông tin</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form action="{% url 'logout' %}" method="post" class="d-inline">
                                             {% csrf_token %}
@@ -111,8 +180,14 @@
                             </div>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'login' %}" class="btn btn-primary me-2">Đăng nhập</a>
-                        <a href="{% url 'register' %}" class="btn btn-secondary">Đăng ký</a>
+                        
+                        <div class="laser-btn-container">
+                            <a href="{% url 'login' %}" class="btn btn-primary">Đăng nhập</a>
+                        </div>
+                        <div class="laser-btn-container">
+                            <a href="{% url 'register' %}" class="btn btn-secondary">Đăng ký</a>
+                        </div>
+                    
                     {% endif %}
                 </div>
             </div>
@@ -120,14 +195,17 @@
     </nav>
     
     <main class="container my-4">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
+        {% if not hide_messages %} 
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss-alert" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
         {% endif %}
+        
         {% block content %}{% endblock %}
     </main>
     
@@ -137,7 +215,6 @@
         <a href="#" class="chatbot-icon" data-bs-toggle="modal" data-bs-target="#chatbotModal">
             <i class="bi bi-chat-right-dots-fill"></i>
         </a>
-
         <div class="modal fade" id="chatbotModal" tabindex="-1" aria-labelledby="chatbotModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -159,21 +236,31 @@
                 </div>
             </div>
         </div>
-        
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    // Script Tự động tắt thông báo
+    const autoDismissAlerts = document.querySelectorAll('.auto-dismiss-alert');
+    autoDismissAlerts.forEach(function(alertElement) {
+        const alertInstance = new bootstrap.Alert(alertElement);
+        setTimeout(function() {
+            if (alertInstance) {
+                alertInstance.close(); 
+            }
+        }, 5000); // 5 giây
+    });
+
+    // Logic Chatbot
     const chatForm = document.getElementById('chat-form');
     if (chatForm) {
         const chatInput = document.getElementById('chat-input');
         const chatHistory = document.getElementById('chat-history');
-        // Lấy "chìa khóa" CSRF từ một input ẩn (cách an toàn nhất)
-        const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        const csrftokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        const csrftoken = csrftokenInput ? csrftokenInput.value : '{{ csrf_token }}'; 
 
-        // --- BẮT ĐẦU HÀM BẠN CẦN THÊM ---
         function appendMessage(message, sender, isTyping = false) {
             const messageWrapper = document.createElement('div');
             messageWrapper.classList.add('d-flex', 'mb-3', sender === 'user' ? 'justify-content-end' : 'justify-content-start');
-
             const messageBubble = document.createElement('div');
             messageBubble.classList.add('p-2', 'rounded', 'mw-75');
             
@@ -192,13 +279,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             messageWrapper.appendChild(messageBubble);
             chatHistory.appendChild(messageWrapper);
-            
-            // Tự động cuộn xuống tin nhắn mới nhất
             chatHistory.scrollTop = chatHistory.scrollHeight;
-
-            return messageWrapper; // Trả về phần tử để có thể xóa (ví dụ: xóa typing indicator)
+            return messageWrapper;
         }
-        // --- KẾT THÚC HÀM ---
 
         chatForm.addEventListener('submit', async function(e) {
             e.preventDefault();

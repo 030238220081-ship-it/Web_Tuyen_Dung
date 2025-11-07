@@ -29,6 +29,15 @@
                 <input type="number" class="form-control" name="quantity" id="quantity" value="1">
             </div>
             <div class="mb-3">
+                <label for="category" class="form-label">Ngành nghề:</label>
+                <select class="form-select" name="category" id="category" required>
+                    <option value="" disabled selected>— Vui lòng chọn ngành nghề —</option>
+                    {% for value, display in categories %}
+                        <option value="{{ value }}">{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
                 <label for="description" class="form-label">Mô tả công việc (JD):</label>
                 <textarea class="form-control" name="description" id="description" rows="15">{{ generated_jd }}</textarea>
             </div>

@@ -2,7 +2,6 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import CustomUser
 from .models import Profile
-
 class CustomUserCreationForm(forms.ModelForm):
     password = forms.CharField(
         label='Mật khẩu', 
@@ -41,10 +40,24 @@ class ProfileForm(forms.ModelForm):
         }
         labels = {
             'full_name': 'Họ và tên',
-            'summary': 'Tóm tắt bản thân / Giới thiệu kỹ năng',
+            'summary': 'Tóm tắt chuyên môn',
             'cv_file': 'Tải lên CV (PDF, DOCX)',
+            'avatar': 'Ảnh đại diện / Logo',
         }
 
+class RecruiterProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['full_name', 'summary', 'avatar']
+        widgets = {
+            'full_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'summary': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'full_name': 'Họ và tên của bạn',
+            'summary': 'Chức danh',
+            'avatar': 'Ảnh đại diện / Logo công ty',
+        }
 
 
 
