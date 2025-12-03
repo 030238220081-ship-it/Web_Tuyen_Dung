@@ -147,10 +147,10 @@
 </style>
 
 <div class="text-center bg-light p-5 rounded-3 mb-5 hero-section-animated">
-    <h1 class="display-4 fw-bold">Tìm kiếm công việc mơ ước của bạn</h1>
+    <h1 class="display-4 fw-bold">Tìm kiếm công việc phù hợp với bạn</h1>
     <div class="marquee-container fs-4 text-muted">
         <span class="marquee-text">
-            Với sức mạnh của Trí tuệ nhân tạo tạo sinh, JobAI sẽ giúp bạn kết nối với những cơ hội tốt nhất.
+            Chúng tôi sẽ giúp bạn kết nối với những cơ hội việc làm tốt nhất và nhanh chóng nhất.
         </span>
     </div>
     <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
@@ -171,7 +171,7 @@
                     <i class="bi bi-cloud-arrow-up-fill animated-icon"></i>
                 </div>
                 <h4 class="fw-bold">1. Tải lên CV</h4>
-                <p>Chỉ cần tải lên CV mới nhất của bạn, hệ thống sẽ tự động phân tích.</p>
+                <p>Chỉ cần tải lên CV của bạn, hệ thống sẽ tự động phân tích.</p>
             </div>
         </div>
         
@@ -181,7 +181,7 @@
                     <i class="bi bi-magic animated-icon"></i>
                 </div>
                 <h4 class="fw-bold">2. AI Gợi ý việc làm</h4>
-                <p>AI sẽ so khớp hồ sơ của bạn với hàng ngàn tin tuyển dụng để tìm ra vị trí phù hợp nhất.</p>
+                <p>Chúng tôi sẽ so khớp CV của bạn với hàng nghìn tin tuyển dụng để tìm ra vị trí phù hợp nhất.</p>
             </div>
         </div>
         
@@ -191,7 +191,7 @@
                     <i class="bi bi-send-check-fill animated-icon"></i>
                 </div>
                 <h4 class="fw-bold">3. Ứng tuyển một chạm</h4>
-                <p>Nhận phân tích chi tiết về CV và ứng tuyển vào các vị trí hàng đầu chỉ với một cú nhấp chuột.</p>
+                <p>Phân tích chi tiết về CV và ứng tuyển nhanh chỉ với một cú nhấp chuột.</p>
             </div>
         </div>
         
@@ -209,7 +209,12 @@
                         <input type="text" class="form-control" name="q" placeholder="Nhập tiêu đề, kỹ năng..." value="{{ search_values.q }}">
                     </div>
                     <div class="col-md-3">
-                        <input type="text" class="form-control" name="location" placeholder="Địa điểm..." value="{{ search_values.location }}">
+                        <select class="form-select" name="location">
+                        <option value="">Tất cả địa điểm</option>
+                        {% for province in provinces %}
+                            <option value="{{ province }}" {% if search_values.location == province %}selected{% endif %}>{{ province }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <select class="form-select" name="category">

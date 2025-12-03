@@ -1,45 +1,89 @@
 {% extends 'recruitment/base.html' %}
-{% block title %}Tạo tin tuyển dụng {% endblock %}
+{% block title %}Đăng tin tuyển dụng{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <h1 class="card-title">Tạo tin tuyển dụng </h1>
-        <p class="card-text">Chỉ cần nhập vào các yêu cầu chính tôi sẽ giúp bạn viết một JD hoàn chỉnh.</p>
-        
-        <form method="post" id="ai-form">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label for="title" class="form-label">Vị trí công việc:</label>
-                <input type="text" class="form-control" name="title" id="title" required placeholder="Ví dụ: Lập trình viên Backend ">
+<h1 class="card-title mb-4">Đăng tin tuyển dụng</h1>
+
+<ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="new-ai-tab" data-bs-toggle="tab" data-bs-target="#new-ai-pane" type="button" role="tab" aria-controls="new-ai-pane" aria-selected="true">
+            <i class="bi bi-magic"></i> Tạo mới bằng AI
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="reuse-tab" data-bs-toggle="tab" data-bs-target="#reuse-pane" type="button" role="tab" aria-controls="reuse-pane" aria-selected="false">
+            <i class="bi bi-archive-fill"></i> Tái sử dụng từ Kho lưu trữ
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="myTabContent">
+    
+    <div class="tab-pane fade show active" id="new-ai-pane" role="tabpanel" aria-labelledby="new-ai-tab">
+        <div class="card">
+            <div class="card-body">                
+                <form method="post" id="ai-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Vị trí công việc:</label>
+                        <input type="text" class="form-control" name="title" id="title" required placeholder="Ví dụ: Lập trình viên Backend">
+                    </div>
+                    <div class="mb-3">
+                        <label for="experience" class="form-label">Số năm kinh nghiệm:</label>
+                        <input type="text" class="form-control" name="experience" id="experience" required placeholder="Ví dụ: 2-3">
+                    </div>
+                    <div class="mb-3">
+                        <label for="keywords" class="form-label">Các kỹ năng yêu cầu:</label>
+                        <textarea class="form-control" name="keywords" id="keywords" rows="3" required placeholder="Ví dụ: Django, PostgreSQL, REST API"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100" id="submit-btn">
+                        <span id="btn-text">Tạo JD bằng AI</span>
+                        <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
+                    </button>
+                </form>
             </div>
-            <div class="mb-3">
-                <label for="experience" class="form-label">Số năm kinh nghiệm:</label>
-                <input type="text" class="form-control" name="experience" id="experience" required placeholder="Ví dụ: 2-3">
+        </div>
+    </div>
+    
+    <div class="tab-pane fade" id="reuse-pane" role="tabpanel" aria-labelledby="reuse-tab">
+        <div class="card">
+            <div class="card-body">
+                <p>Chọn một tin tuyển dụng đã lưu trữ để sao chép và đăng lại.</p>
+                <div class="list-group">
+                    {% for job in archived_jobs %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ job.title }}</h6>
+                                <small class="text-muted">Đã lưu trữ ngày: {{ job.created_at|date:"d/m/Y" }}</Gia></small>
+                            </div>
+                            <a href="{% url 'clone_job' job.id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-back"></i> Tái sử dụng
+                            </a>
+                        </div>
+                    {% empty %}
+                        <div class="list-group-item text-center text-muted">
+                            Kho lưu trữ của bạn trống.
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="keywords" class="form-label">Các kỹ năng yêu cầu:</label>
-                <textarea class="form-control" name="keywords" id="keywords" rows="3" required placeholder="Ví dụ: Django, PostgreSQL, REST API"></textarea>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100" id="submit-btn">
-                <span id="btn-text"> Tạo JD bằng AI</span>
-                <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
-            </button>
-        </form>
+        </div>
     </div>
 </div>
 
 <script>
     const aiForm = document.getElementById('ai-form');
-    const submitBtn = document.getElementById('submit-btn');
-    const btnText = document.getElementById('btn-text');
-    const loadingSpinner = document.getElementById('loading-spinner');
+    if (aiForm) {
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
 
-    aiForm.addEventListener('submit', function() {
-        submitBtn.disabled = true;
-        btnText.textContent = 'AI đang xử lý, vui lòng chờ...';
-        loadingSpinner.classList.remove('d-none');
-    });
+        aiForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            btnText.textContent = 'AI đang xử lý, vui lòng chờ...';
+            loadingSpinner.classList.remove('d-none');
+        });
+    }
 </script>
 {% endblock %}

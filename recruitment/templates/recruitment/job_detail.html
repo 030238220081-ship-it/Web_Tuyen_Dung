@@ -2,10 +2,35 @@
 {% block title %}{{ job.title }}{% endblock %}
 
 {% block content %}
+
+<style>
+    /* 1. Hiệu ứng "Tỏa sáng" viền cho thẻ AI */
+    .ai-analysis-card {
+        border-width: 2px; /* Làm viền dày hơn một chút */
+        animation: pulse-border 2.5s infinite;
+    }
+    
+    @keyframes pulse-border {
+        0% { border-color: #0d6efd; } /* Xanh dương (màu gốc) */
+        50% { border-color: #0dcaf0; } /* Chuyển sang màu Xanh lơ */
+        100% { border-color: #0d6efd; } /* Quay lại màu gốc */
+    }
+
+    /* 2. Hiệu ứng "Nhấp nháy" (Scale) cho icon */
+    .ai-analysis-card .btn .pulsing-icon {
+        display: inline-block;
+        animation: pulse-icon 2s infinite;
+    }
+
+    @keyframes pulse-icon {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); } /* Icon to ra 20% */
+        100% { transform: scale(1); }
+    }
+</style>
 <div class="card">
     <div class="card-header">
         <h1 class="card-title h2">{{ job.title }}</h1>
-        
         <div class="d-flex align-items-center text-muted mt-2">
             {% if job.recruiter.profile.avatar %}
                 <img src="{{ job.recruiter.profile.avatar.url }}" alt="{{ job.recruiter.username }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
@@ -14,7 +39,7 @@
             {% endif %}
             <span>Đăng bởi: <strong>{{ job.recruiter.username }}</strong> vào ngày {{ job.created_at|date:"d/m/Y" }}</span>
         </div>
-        </div>
+    </div>
     <div class="card-body">
         <div class="row mb-4">
             {% if job.location %}
@@ -52,29 +77,67 @@
                     <a href="{% url 'chat_view' my_application.id %}" class="btn btn-info btn-sm">Chat với Nhà tuyển dụng</a>
                 </div>
             {% else %}
-                <h4>Ứng tuyển (Kèm Phân tích AI)</h4>
+                
+                <div class="card bg-light border-primary mb-4 ai-analysis-card">
+                    <div class="card-body">
+                        
+                        <div class="d-grid">
+                            <a class="btn btn-outline-primary" data-bs-toggle="collapse" href="#aiAnalyzeCollapse" role="button" aria-expanded="false" aria-controls="aiAnalyzeCollapse">
+                                <i class="bi bi-magic pulsing-icon"></i> 
+                                Bạn muốn AI phân tích CV của mình với JD này? (Nhấn để xem)
+                            </a>
+                        </div>
+                        
+                        <div class="collapse mt-4" id="aiAnalyzeCollapse">
+                            
+                            <form id="analyze-form">
+                                <input type="hidden" id="analyze_job_id" value="{{ job.id }}">
+                                <input type="hidden" id="analyze_csrf_token" value="{{ csrf_token }}">
+
+                                <div class="mb-3">
+                                    <label for="analyze_cv_file" class="form-label">Tải CV từ máy tính:</label>
+                                    <input class="form-control" type="file" id="analyze_cv_file" name="cv_file">
+                                </div>
+                                
+                                <button type="button" class="btn btn-primary" id="analyze-new-cv-btn">
+                                    <span class="btn-text">Phân tích </span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                </button>
+                                
+                                {% if user.profile.cv_file %}
+                                <button type="button" class="btn btn-outline-primary" id="analyze-profile-cv-btn">
+                                    <span class="btn-text">Phân tích CV đã upload</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                </button>
+                                {% else %}
+                                <p class="d-inline-block small text-muted ms-2">Bạn cần <a href="{% url 'profile' %}">cập nhật hồ sơ</a> để dùng CV có sẵn.</p>
+                                {% endif %}
+                            </form>
+                            
+                            <div id="analysis-results-container" class="d-none mt-4">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4>Ứng tuyển cho vị trí này</h4>
                 <form method="post" enctype="multipart/form-data" id="apply-form">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="cv" class="form-label">Tải lên CV (PDF, DOCX):</label>
                         <input class="form-control" type="file" id="cv" name="cv" required>
                     </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="set_as_default" id="set_as_default" checked>
-                        <label class="form-check-label" for="set_as_default">
-                            Cập nhật CV này làm CV mặc định cho các tính năng AI
-                        </label>
-                    </div>
                     
                     <button type="submit" class="btn btn-primary" id="submit-btn-apply">
-                        <span id="btn-text">Phân tích & Nộp hồ sơ (Tải CV mới)</span>
-                        <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
+                        <span id="btn-text-apply">Tải lên CV từ máy</span>
+                        <span class="spinner-border spinner-border-sm d-none" id="loading-spinner-apply" role="status"></span>
                     </button>
                     
-                    <a href="{% url 'apply_with_profile' job.id %}" class="btn btn-outline-primary">Nộp hồ sơ (Dùng CV trong hồ sơ)</a>
+                    <a href="{% url 'apply_with_profile' job.id %}" class="btn btn-outline-primary">Nộp CV có sẵn</a>
                 </form>
             {% endif %}
-            {% else %}
+
+        {% else %}
             <div class="alert alert-info">
                 <a href="{% url 'login' %}?next={{ request.path }}">Đăng nhập</a> để ứng tuyển cho vị trí này.
             </div>
@@ -86,22 +149,146 @@
 </div>
 
 <script>
-    // Script cho nút loading
+document.addEventListener('DOMContentLoaded', function() {
+    
     const applyForm = document.getElementById('apply-form');
     if (applyForm) {
         const submitBtn = document.getElementById('submit-btn-apply');
-        const btnText = document.getElementById('btn-text');
-        const loadingSpinner = document.getElementById('loading-spinner');
+        const btnText = document.getElementById('btn-text-apply');
+        const loadingSpinner = document.getElementById('loading-spinner-apply');
 
         applyForm.addEventListener('submit', function() {
-            // Kiểm tra xem file đã được chọn chưa
             const cvInput = document.getElementById('cv');
             if (cvInput.files.length > 0) {
                 submitBtn.disabled = true;
-                btnText.textContent = 'AI đang phân tích, vui lòng chờ...';
+                btnText.textContent = 'Đang nộp đơn & phân tích...';
                 loadingSpinner.classList.remove('d-none');
             }
         });
     }
+
+    const analyzeForm = document.getElementById('analyze-form');
+    if (analyzeForm) {
+        const analyzeNewBtn = document.getElementById('analyze-new-cv-btn');
+        const analyzeProfileBtn = document.getElementById('analyze-profile-cv-btn');
+        const resultsContainer = document.getElementById('analysis-results-container');
+        const cvFileInput = document.getElementById('analyze_cv_file');
+        const jobId = document.getElementById('analyze_job_id').value;
+        const csrfToken = document.getElementById('analyze_csrf_token').value;
+
+        async function fetchAnalysis(formData, button) {
+            const btnText = button.querySelector('.btn-text');
+            const spinner = button.querySelector('.spinner-border');
+            const originalText = btnText.textContent;
+
+            btnText.textContent = 'Đang phân tích...';
+            spinner.classList.remove('d-none');
+            button.disabled = true;
+            resultsContainer.classList.add('d-none'); 
+
+            try {
+                const response = await fetch("{% url 'analyze_cv_for_job_api' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAnalysisResults(result.data);
+                } else {
+                    displayAnalysisError(result.error);
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                displayAnalysisError('Lỗi kết nối máy chủ. Vui lòng thử lại.');
+            } finally {
+                btnText.textContent = originalText;
+                spinner.classList.add('d-none');
+                button.disabled = false;
+            }
+        }
+
+        analyzeNewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (cvFileInput.files.length === 0) {
+                alert('Vui lòng chọn một file CV để tải lên.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('job_id', jobId);
+            formData.append('cv_file', cvFileInput.files[0]);
+            
+            fetchAnalysis(formData, this);
+        });
+
+        if (analyzeProfileBtn) {
+            analyzeProfileBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                formData.append('job_id', jobId);
+                formData.append('use_profile_cv', 'true');
+                
+                fetchAnalysis(formData, this);
+            });
+        }
+
+        function displayAnalysisResults(data) {
+            let strengthsHtml = data.strengths.map(item => `<li class="list-group-item">${item}</li>`).join('');
+            let suggestionsHtml = data.suggestions.map(item => `<li class="list-group-item">${item}</li>`).join('');
+
+            resultsContainer.innerHTML = `
+                <hr>
+                <div class="text-center mb-3">
+                    <h3 class="h4">Kết quả Phân tích Nhanh</h3>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-center">Mức độ phù hợp</h5>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: ${data.score}%;" 
+                             aria-valuenow="${data.score}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                             ${data.score}%
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-hand-thumbs-up-fill"></i> <strong>Điểm mạnh</strong>
+                            </div>
+                            <ul class="list-group list-group-flush">${strengthsHtml}</ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="bi bi-lightbulb-fill"></i> <strong>Gợi ý cải thiện</strong>
+                            </div>
+                            <ul class="list-group list-group-flush">${suggestionsHtml}</ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultsContainer.classList.remove('d-none');
+        }
+
+        function displayAnalysisError(errorMsg) {
+            resultsContainer.innerHTML = `
+                <hr>
+                <div class="alert alert-danger">${errorMsg}</div>
+            `;
+            resultsContainer.classList.remove('d-none');
+        }
+    }
+});
 </script>
 {% endblock %}

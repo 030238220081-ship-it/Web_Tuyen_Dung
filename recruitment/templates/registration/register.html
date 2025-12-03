@@ -6,7 +6,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm border-0">
             <div class="card-body p-5">
-                <h2 class="card-title text-center fw-bold mb-4">Tạo tài khoản JobAI</h2>
+                <h2 class="card-title text-center fw-bold mb-4">Tạo tài khoản mới</h2>
                 <form method="post">
                     {% csrf_token %}
                     
@@ -21,13 +21,13 @@
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="user_type" id="candidate" value="candidate" checked>
                             <label class="form-check-label" for="candidate">
-                                Ứng viên (Tìm kiếm việc làm)
+                                Ứng viên 
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="user_type" id="recruiter" value="recruiter">
                             <label class="form-check-label" for="recruiter">
-                                Nhà tuyển dụng (Đăng tin & tìm ứng viên)
+                                Nhà tuyển dụng 
                             </label>
                         </div>
                     </div>

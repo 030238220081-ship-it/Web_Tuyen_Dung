@@ -3,7 +3,6 @@ from django.conf import settings
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model, login, logout
-from .models import JobPosting, Application, Profile, Notification, DirectMessage
 from .forms import CustomUserCreationForm, ProfileForm, RecruiterProfileForm
 from django.urls import reverse_lazy
 from django.views import generic
@@ -15,8 +14,78 @@ from django.http import JsonResponse
 from .utils import extract_text_from_cv
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models.functions import TruncDate
+from .models import JobPosting, Application, Profile, Notification, DirectMessage, EmailTemplate, Interview
+from django.template import Context, Template
 
 CustomUser = get_user_model()
+
+DEFAULT_TEMPLATES = {
+    'invite': """Chào bạn {{candidate_name}},
+
+Cảm ơn bạn đã ứng tuyển vào vị trí {{job_title}} tại công ty chúng tôi.
+
+Chúng tôi rất ấn tượng với hồ sơ của bạn và trân trọng mời bạn tham gia một buổi phỏng vấn:
+- Thời gian: {{interview_time}}
+- Địa điểm: {{interview_location}}
+
+Ghi chú thêm: {{custom_message}}
+
+Vui lòng xác nhận lại lịch hẹn này.
+
+Trân trọng,
+{{recruiter_name}}""",
+    
+    'reject_cv': """Chào bạn {{candidate_name}},
+
+Cảm ơn bạn đã quan tâm và ứng tuyển vào vị trí {{job_title}}.
+
+Sau khi xem xét cẩn thận, chúng tôi nhận thấy hồ sơ của bạn chưa hoàn toàn phù hợp với các yêu cầu của vị trí này ở thời điểm hiện tại.
+{{custom_message}}
+
+Chúng tôi sẽ lưu lại hồ sơ của bạn và liên hệ khi có cơ hội khác phù hợp hơn.
+Chúc bạn may mắn.
+
+Trân trọng,
+{{recruiter_name}}""",
+    
+    'pass': """Chào bạn {{candidate_name}},
+
+Chúc mừng! Chúng tôi rất vui mừng thông báo bạn đã CHÍNH THỨC trúng tuyển vị trí {{job_title}} tại công ty chúng tôi.
+
+Chúng tôi tin rằng kỹ năng và kinh nghiệm của bạn sẽ là một sự bổ sung tuyệt vời cho đội ngũ.
+Ghi chú thêm: {{custom_message}}
+
+Chúng tôi sẽ sớm liên hệ với bạn để thảo luận về các bước tiếp theo.
+
+Trân trọng,
+{{recruiter_name}}""",
+    
+    'reject_interview': """Chào bạn {{candidate_name}},
+
+Cảm ơn bạn đã dành thời gian tham gia phỏng vấn cho vị trí {{job_title}}.
+Chúng tôi đánh giá cao nỗ lực của bạn.
+
+Tuy nhiên, sau khi cân nhắc kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng chúng tôi sẽ tiếp tục với các ứng viên khác phù hợp hơn.
+{{custom_message}}
+
+Chúc bạn mọi điều tốt đẹp và may mắn trong hành trình tìm kiếm công việc.
+
+Trân trọng,
+{{recruiter_name}}"""
+}
+
+VIETNAM_PROVINCES = [
+    "Hà Nội",
+    "Hồ Chí Minh",
+    "Đà Nẵng",
+    "Hải Phòng",
+    "Cần Thơ",
+    "Bắc Ninh",
+    "Bình Dương",
+    "Đồng Nai",
+    "Khánh Hòa",
+    "Quảng Ninh",
+]
 
 def extract_text_from_cv(cv_file):
     text = ""
@@ -36,14 +105,11 @@ def extract_text_from_cv(cv_file):
         print(f"Lỗi khi đọc file CV: {e}")
     return text
 
-def job_list(request):
-    jobs = JobPosting.objects.all().order_by('-created_at')
-    return render(request, 'recruitment/job_list.html', {'jobs': jobs})
-
 @login_required
 def create_job(request):
     if request.user.user_type != 'recruiter':
         return redirect('job_list')
+        
     if request.method == 'POST':
         title = request.POST.get('title')
         keywords = request.POST.get('keywords')
@@ -55,7 +121,7 @@ def create_job(request):
             client = groq.Groq(api_key=settings.GROQ_API_KEY)
             chat_completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-8b-instant" 
+                model="llama-3.1-8b-instant",
             )
             generated_jd = chat_completion.choices[0].message.content
         except Exception as e:
@@ -68,7 +134,15 @@ def create_job(request):
 
         return redirect('create_job_review')
 
-    return render(request, 'recruitment/create_job.html')
+    archived_jobs = JobPosting.objects.filter(
+        recruiter=request.user, 
+        is_archived=True
+    ).order_by('-created_at')
+    
+    context = {
+        'archived_jobs': archived_jobs
+    }
+    return render(request, 'recruitment/create_job.html', context)
 
 @login_required
 def job_detail(request, job_id):
@@ -92,120 +166,56 @@ def job_detail(request, job_id):
             messages.error(request, 'Không thể đọc được file CV. Chỉ hỗ trợ PDF và DOCX.')
             return redirect('job_detail', job_id=job_id)
 
-        # --- BẮT ĐẦU LOGIC AI MỚI ---
-        # 1. Lấy điểm (Hàm get_ai_match_score đã được tối ưu)
-        ai_score = get_ai_match_score(cv_text, job.description)
+        prompt = f"""Phân tích JD và CV dưới đây.
+        JD: {job.description}
+        CV: {cv_text}
+        Hãy trả về kết quả là một chuỗi json và không có bất kỳ văn bản nào khác. Json object phải có 2 key: "score" (với thang điểm từ 0-100) và "summary" """
         
-        # 2. Lấy phân tích chi tiết (Điểm mạnh/yếu)
-        analysis_prompt = f"""
-        Một ứng viên có CV đạt {ai_score} điểm (trên thang 100) khi so sánh với một Mô tả công việc (JD).
-        Dựa trên CV và JD dưới đây, hãy đưa ra phân tích.
-        
-        --- CV ---
-        {cv_text}
-        --- JD ---
-        {job.description}
-
-        Hãy trả về kết quả dưới dạng MỘT CHUỖI JSON HỢP LỆ và KHÔNG có gì khác, bọc trong cặp dấu ```json ... ```.
-        JSON object chỉ cần có 2 key:
-        1. "strengths": (list) 2-3 điểm mạnh cụ thể.
-        2. "suggestions": (list) 2-3 gợi ý cải thiện.
-        """
-        
-        ai_summary = "Không thể tạo tóm tắt."
-        ai_strengths = []
-        ai_suggestions = []
-
+        ai_score, ai_summary = 0, "Không thể phân tích."
         try:
             client = groq.Groq(api_key=settings.GROQ_API_KEY)
             chat_completion = client.chat.completions.create(
-                messages=[{"role": "user", "content": analysis_prompt}],
-                model="llama-3.1-8b-instant" # Model ổn định của bạn
+                messages=[
+                    {"role": "system", "content": "Bạn là một AI chuyên sàng lọc CV, chỉ trả về kết quả dưới dạng JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                model="llama-3.1-8b-instant" 
             )
             response_text = chat_completion.choices[0].message.content
-            
-            json_match = re.search(r'```json\n(.*?)\n```', response_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                json_str = response_text
-                
-            analysis_data = json.loads(json_str)
-            ai_strengths = analysis_data.get("strengths", ["AI không tìm thấy điểm mạnh."])
-            ai_suggestions = analysis_data.get("suggestions", ["AI không có gợi ý cải thiện."])
-            # Tạo tóm tắt từ điểm mạnh
-            ai_summary = "\n".join(f"- {s}" for s in ai_strengths)
-
+            ai_result = json.loads(response_text)
+            ai_score = ai_result.get('score', 0)
+            ai_summary = ai_result.get('summary', 'Lỗi tóm tắt.')
         except Exception as e:
-            print(f"Lỗi Groq API khi phân tích (job_detail): {e}")
-            ai_summary = "Lỗi khi AI phân tích chi tiết."
-        # --- KẾT THÚC LOGIC AI MỚI ---
+            print(f"Lỗi Groq API khi sàng lọc CV (job_detail POST): {e}")
 
-        # Tạo hồ sơ ứng tuyển
         new_application = Application.objects.create(
             job=job, 
             candidate=request.user, 
             cv=cv_file, 
             ai_score=ai_score, 
-            ai_summary=ai_summary # Lưu tóm tắt điểm mạnh
+            ai_summary=ai_summary
         )
         
-        # Lưu kết quả phân tích đầy đủ vào session để trang sau sử dụng
-        request.session['analysis_result'] = {
-            'score': ai_score,
-            'strengths': ai_strengths,
-            'suggestions': ai_suggestions
-        }
-        
-        # Cập nhật CV mặc định nếu người dùng chọn
         set_as_default = request.POST.get('set_as_default')
         if set_as_default:
             try:
                 profile = request.user.profile
-                profile.cv_file = new_application.cv
+                profile.cv_file = new_application.cv 
                 profile.save()
             except Profile.DoesNotExist:
                 Profile.objects.create(user=request.user, cv_file=new_application.cv)
         
-        # Chuyển hướng đến trang kết quả
-        return redirect('application_result', application_id=new_application.id)
+        messages.success(request, 'Bạn đã nộp hồ sơ thành công!')
+        return redirect('job_detail', job_id=job_id)
         
     return render(request, 'recruitment/job_detail.html', {'job': job, 'my_application': my_application})
-
-@login_required
-def analyze_cv_view(request, job_id):
-    job = get_object_or_404(JobPosting, pk=job_id)
-    profile, created = Profile.objects.get_or_create(user=request.user)
-    if not profile.cv_file:
-        return render(request, 'recruitment/analysis_result.html', {'error': 'Bạn cần tải CV lên hồ sơ trước.'})
-    cv_text = extract_text_from_cv(profile.cv_file)
-    if not cv_text:
-        return render(request, 'recruitment/analysis_result.html', {'error': 'Không đọc được file CV.'})
-
-    prompt = f"""Phân tích sự phù hợp giữa CV và JD.
-    JD: {job.description}
-    CV: {cv_text}
-    Hãy trả về 3 điểm: 1. Mức độ phù hợp (%), 2. 3 điểm mạnh nhất, 3. 2 điểm cần cải thiện."""
-    
-    analysis_result = "Không thể phân tích."
-    try:
-        client = groq.Groq(api_key=settings.GROQ_API_KEY)
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant"
-        )
-        analysis_result = chat_completion.choices[0].message.content
-    except Exception as e:
-        print(f"Lỗi Groq API khi phân tích CV: {e}")
-
-    return render(request, 'recruitment/analysis_result.html', {'result': analysis_result, 'job': job})
 
 @login_required
 def chat_api_view(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         user_message = data.get('message')
-        prompt = f"""Bạn là một trợ lý tuyển dụng AI thân thiện tên là JobAI. Hãy trả lời câu hỏi của ứng viên một cách ngắn gọn, hữu ích. Câu hỏi: "{user_message}" """
+        prompt = f"""Bạn là một trợ lý tuyển dụng AI thân thiện. Hãy trả lời câu hỏi của ứng viên một cách ngắn gọn, hữu ích. Câu hỏi: "{user_message}" """
         
         bot_response = "Lỗi kết nối đến AI."
         try:
@@ -220,64 +230,6 @@ def chat_api_view(request):
 
         return JsonResponse({'response': bot_response.strip()})
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-@login_required
-def search_candidates_view(request):
-    if request.user.user_type != 'recruiter':
-        return redirect('job_list')
-    results = []
-    query = ""
-    if request.method == 'POST':
-        query = request.POST.get('query', '')
-        if query:
-            candidate_profiles = Profile.objects.filter(user__user_type='candidate').exclude(cv_file__isnull=True).exclude(cv_file__exact='')
-            all_candidates_data = []
-            for profile in candidate_profiles:
-                cv_text = extract_text_from_cv(profile.cv_file)
-                if cv_text:
-                    all_candidates_data.append({
-                        "user_id": profile.user.id,
-                        "cv_text": cv_text
-                    })
-
-            candidates_json_str = json.dumps(all_candidates_data, ensure_ascii=False)
-            prompt = f"""Với vai trò là headhunter, hãy phân tích yêu cầu sau đây và tìm 3 ứng viên phù hợp nhất từ danh sách CV.
-            YÊU CẦU: {query}
-            DANH SÁCH CV: {candidates_json_str}
-            Hãy trả về MỘT CHUỖI JSON HỢP LỆ và không có gì khác. Chuỗi JSON là một danh sách, mỗi phần tử là một object ứng viên có các key: "user_id" (số nguyên), "score" (số nguyên 0-100), "reason" (chuỗi giải thích ngắn gọn)."""
-            
-            try:
-                client = groq.Groq(api_key=settings.GROQ_API_KEY)
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": "Bạn là một AI chuyên tìm kiếm ứng viên, chỉ trả về kết quả dưới dạng JSON."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    model="llama-3.1-8b-instant"
-                )
-                response_text = chat_completion.choices[0].message.content
-                ai_results = json.loads(response_text)
-                
-                for result in ai_results:
-                    try:
-                        user = CustomUser.objects.get(pk=result.get("user_id"))
-                        profile = Profile.objects.get(user=user)
-                        results.append({
-                            "user": user,
-                            "profile": profile,
-                            "score": result.get("score"),
-                            "reason": result.get("reason")
-                        })
-                    except (CustomUser.DoesNotExist, Profile.DoesNotExist):
-                        continue
-                results.sort(key=lambda x: x['score'], reverse=True)
-            except Exception as e:
-                print(f"Lỗi Groq API khi tìm kiếm ứng viên: {e}")
-                messages.error(request, 'Đã có lỗi xảy ra với AI. Vui lòng thử lại.')
-
-    context = {'results': results, 'query': query}
-    return render(request, 'recruitment/search_candidates.html', context)
-
 class RegisterView(generic.CreateView):
     form_class = CustomUserCreationForm
     template_name = 'registration/register.html'
@@ -331,19 +283,31 @@ def profile_view(request):
 def recruiter_dashboard(request):
     if request.user.user_type != 'recruiter':
         return redirect('job_list')
+        
     jobs = JobPosting.objects.filter(
-        recruiter=request.user,
+        recruiter=request.user, 
         is_archived=False
     ).annotate(
         application_count=Count('application')
     ).order_by('-created_at')
+    
     total_jobs_posted = jobs.count()
     total_applications_received = sum(job.application_count for job in jobs)
+    
+    upcoming_interviews = Interview.objects.filter(
+        application__job__recruiter=request.user,
+        application__status='confirmed', 
+        interview_date__gte=timezone.now() 
+    ).select_related(
+        'application__candidate', 'application__job'
+    ).order_by('interview_date')[:5] 
+
     context = {
-    'jobs': jobs, 
-    'total_jobs_posted': total_jobs_posted,
-    'total_applications_received': total_applications_received,
-}
+        'jobs': jobs, 
+        'total_jobs_posted': total_jobs_posted,
+        'total_applications_received': total_applications_received,
+        'upcoming_interviews': upcoming_interviews, 
+    }
     return render(request, 'recruitment/recruiter_dashboard.html', context)
 
 @login_required
@@ -410,10 +374,6 @@ def job_match_view(request):
 
 @login_required
 def apply_with_profile_view(request, job_id):
-    """
-    NÂNG CẤP: Ứng tuyển bằng CV hồ sơ, đồng thời
-    CHẠY PHÂN TÍCH AI và chuyển đến trang kết quả.
-    """
     if request.user.user_type != 'candidate':
         messages.error(request, 'Chỉ có ứng viên mới có thể ứng tuyển.')
         return redirect('job_list')
@@ -423,87 +383,92 @@ def apply_with_profile_view(request, job_id):
 
     if Application.objects.filter(job=job, candidate=request.user).exists():
         messages.warning(request, f'Bạn đã ứng tuyển vào vị trí "{job.title}" trước đó rồi.')
-        return redirect('job_matches')
+        return redirect('job_detail', job_id=job_id) 
 
     if not profile.cv_file:
         messages.error(request, 'Bạn chưa có CV trong hồ sơ để ứng tuyển.')
         return redirect('profile')
 
-    # --- BẮT ĐẦU LOGIC AI MỚI ---
-    # Lấy CV từ hồ sơ và chạy phân tích
-    cv_text = extract_text_from_cv(profile.cv_file)
-    if not cv_text:
-        messages.error(request, 'Không thể đọc được file CV trong hồ sơ của bạn.')
-        return redirect('profile')
+    Application.objects.create(
+        job=job, 
+        candidate=request.user, 
+        cv=profile.cv_file, 
+        ai_score=0, 
+        ai_summary="Ứng tuyển bằng hồ sơ có sẵn. (Chưa chạy phân tích)" 
+    )
 
-    # 1. Lấy điểm
-    ai_score = get_ai_match_score(cv_text, job.description)
+    messages.success(request, f'Bạn đã ứng tuyển thành công vào vị trí "{job.title}"!')
     
-    # 2. Lấy phân tích chi tiết (Điểm mạnh/yếu)
-    analysis_prompt = f"""
-    Một ứng viên có CV đạt {ai_score} điểm (trên thang 100) khi so sánh với một Mô tả công việc (JD).
-    Dựa trên CV và JD dưới đây, hãy đưa ra phân tích.
-    
-    --- CV ---
-    {cv_text}
-    --- JD ---
-    {job.description}
+    return redirect('job_detail', job_id=job_id)
 
-    Hãy trả về kết quả dưới dạng MỘT CHUỖI JSON HỢP LỆ và KHÔNG có gì khác, bọc trong cặp dấu ```json ... ```.
-    JSON object chỉ cần có 2 key:
-    1. "strengths": (list) 2-3 điểm mạnh cụ thể.
-    2. "suggestions": (list) 2-3 gợi ý cải thiện.
-    """
-    
-    ai_summary = "Không thể tạo tóm tắt."
-    ai_strengths = []
-    ai_suggestions = []
+@login_required
+def analyze_cv_for_job_api(request):
+    if request.method != 'POST' or request.user.user_type != 'candidate':
+        return JsonResponse({'success': False, 'error': 'Yêu cầu không hợp lệ'}, status=400)
 
     try:
+        job_id = request.POST.get('job_id')
+        cv_file = request.FILES.get('cv_file') 
+        use_profile_cv = request.POST.get('use_profile_cv') 
+        
+        job = get_object_or_404(JobPosting, pk=job_id)
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        
+        cv_text = ""
+        if cv_file:
+            cv_text = extract_text_from_cv(cv_file)
+        elif use_profile_cv == 'true':
+            if not profile.cv_file:
+                return JsonResponse({'success': False, 'error': 'Bạn chưa tải CV lên hồ sơ.'})
+            cv_text = extract_text_from_cv(profile.cv_file)
+        else:
+            return JsonResponse({'success': False, 'error': 'Không tìm thấy CV để phân tích.'})
+
+        if not cv_text:
+            return JsonResponse({'success': False, 'error': 'Không thể đọc được file CV.'})
+
+        ai_score = get_ai_match_score(cv_text, job.description)
+        
+        analysis_prompt = f"""
+        Một ứng viên có CV đạt {ai_score} điểm. Dựa trên CV và JD dưới đây, hãy trả về kết quả dưới dạng MỘT CHUỖI JSON HỢP LỆ và KHÔNG có gì khác.
+        JSON object chỉ cần có 2 key:
+        1. "strengths": (list) 2-3 điểm mạnh cụ thể.
+        2. "suggestions": (list) 2-3 gợi ý cải thiện.
+        
+        --- CV ---
+        {cv_text}
+        --- JD ---
+        {job.description}
+        """
+        
+        ai_strengths = []
+        ai_suggestions = []
+
         client = groq.Groq(api_key=settings.GROQ_API_KEY)
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": analysis_prompt}],
-            model="llama-3.1-8b-instant" # Model ổn định của bạn
+            model="llama-3.1-8b-instant"
         )
         response_text = chat_completion.choices[0].message.content
         
         json_match = re.search(r'```json\n(.*?)\n```', response_text, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(1)
-        else:
-            json_str = response_text
+        json_str = json_match.group(1) if json_match else response_text
             
         analysis_data = json.loads(json_str)
         ai_strengths = analysis_data.get("strengths", ["AI không tìm thấy điểm mạnh."])
         ai_suggestions = analysis_data.get("suggestions", ["AI không có gợi ý cải thiện."])
-        ai_summary = "\n".join(f"- {s}" for s in ai_strengths)
+        
+        return JsonResponse({'success': True, 'data': {
+            'score': ai_score,
+            'strengths': ai_strengths,
+            'suggestions': ai_suggestions
+        }})
 
     except Exception as e:
-        print(f"Lỗi Groq API khi phân tích (apply_with_profile): {e}")
-        ai_summary = "Lỗi khi AI phân tích chi tiết."
-    # --- KẾT THÚC LOGIC AI MỚI ---
-
-    # Tạo hồ sơ ứng tuyển
-    new_application = Application.objects.create(
-        job=job, 
-        candidate=request.user, 
-        cv=profile.cv_file, # Sử dụng CV từ hồ sơ
-        ai_score=ai_score,
-        ai_summary=ai_summary
-    )
-
-    # Lưu kết quả phân tích đầy đủ vào session để trang sau sử dụng
-    request.session['analysis_result'] = {
-        'score': ai_score,
-        'strengths': ai_strengths,
-        'suggestions': ai_suggestions
-    }
-
-    messages.success(request, f'Bạn đã ứng tuyển thành công vào vị trí "{job.title}"!')
+        print(f"Lỗi API (analyze_cv_for_job_api): {e}")
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': 'Lỗi máy chủ khi đang phân tích AI.'}, status=500)
     
-    # Chuyển hướng đến trang kết quả (giống như luồng CV mới)
-    return redirect('application_result', application_id=new_application.id)
-
 @login_required
 def create_job_review(request):
     if request.method == 'POST':
@@ -610,9 +575,6 @@ def re_analyze_application_view(request, application_id):
 
 @login_required
 def confirm_interview_view(request, application_id):
-    """
-    View để ứng viên xác nhận lời mời phỏng vấn.
-    """
     application = get_object_or_404(Application, pk=application_id, candidate=request.user)
 
     if application.status == 'confirmed':
@@ -828,9 +790,6 @@ def recruitment_analytics_view(request):
 
 @login_required
 def analytics_summary_api(request):
-    """
-    API mới: Nhận dữ liệu dashboard và trả về phân tích của AI.
-    """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -840,8 +799,8 @@ def analytics_summary_api(request):
             funnel_str = "\n".join([f"- {label}: {count}" for label, count in funnel_data.items()])
 
             prompt = f"""
-            Bạn là một chuyên gia phân tích dữ liệu tuyển dụng (HR Analyst).
-            Dưới đây là các số liệu từ dashboard tuyển dụng của tôi.
+            Bạn là một chuyên gia phân tích dữ liệu tuyển dụng
+            Dưới đây là các số liệu từ dashboard tuyển dụng của tôi
             
             Số liệu tổng quan:
             - Tổng hồ sơ nhận được: {kpi_data.get('total_applications')}
@@ -849,10 +808,10 @@ def analytics_summary_api(request):
             - Số hồ sơ tôi đã mời phỏng vấn: {kpi_data.get('invited_count')}
             - Điểm AI trung bình của hồ sơ: {kpi_data.get('avg_ai_score')} / 100
 
-            Phân bổ trạng thái hồ sơ (Phễu tuyển dụng):
+            Phân bổ trạng thái hồ sơ:
             {funnel_str}
 
-            Dựa trên các số liệu này, hãy đưa ra 3 NHẬN XÉT ngắn gọn và 1 GỢI Ý HÀNH ĐỘNG (call-to-action) để cải thiện quy trình.
+            Dựa trên các số liệu này, hãy đưa ra 3 NHẬN XÉT ngắn gọn và 1 GỢI Ý HÀNH ĐỘNG để cải thiện quy trình.
             Sử dụng giọng văn chuyên nghiệp, đi thẳng vào vấn đề.
             """
 
@@ -872,24 +831,20 @@ def analytics_summary_api(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def get_ai_match_score(cv_text, jd_text):
-    """
-    Hàm chuyên dụng để tính điểm phù hợp giữa CV và JD.
-    Sử dụng prompt theo chuỗi tư duy (Chain-of-Thought) để AI phân tích sâu hơn
-    và trả về JSON để đảm bảo tính chính xác của điểm số.
-    """
     response_content = "" 
     try:
         prompt = f"""
-        Bạn là một chuyên gia tuyển dụng AI. Hãy phân tích CV và JD dưới đây theo 4 bước sau:
-        1.  **Phân tích JD:** Rút ra 3-5 yêu cầu quan trọng nhất (kỹ năng, kinh nghiệm) từ JD.
-        2.  **Đối chiếu CV:** Tìm bằng chứng cụ thể trong CV khớp với từng yêu cầu của JD.
-        3.  **Đánh giá:** Ghi nhận những điểm mạnh (khớp) và điểm yếu (không khớp/thiếu).
-        4.  **Cho điểm:** Dựa trên phân tích ở bước 3, hãy cho một điểm số duy nhất từ 0 đến 100.
+        Bạn là một chuyên gia tuyển dụng, hãy tiến hành phân tích CV và JD dưới đây theo 4 bước sau:
+        1. Rút ra 3-5 yêu cầu quan trọng như kỹ năng, kinh nghiệm từ JD.
+        2. Tìm điểm chung cụ thể trong CV khớp với từng yêu cầu của JD.
+        3. Ghi nhận những điểm mạnh và điểm yếu.
+        4. Dựa trên phân tích ở bước 3, hãy cho một điểm số duy nhất từ 0 đến 100.
 
-        Hãy trả về kết quả dưới dạng MỘT CHUỖI JSON HỢP LỆ và KHÔNG có gì khác.
+        Hãy trả về kết quả dưới dạng một chuỗi json hợp lệ và không có gì khác.
         JSON object phải có dạng: {{"score": <số_nguyên>}}
 
-        --- JD (Job Description) ---
+
+        --- JD ---
         {jd_text}
         
         --- CV ---
@@ -950,6 +905,7 @@ def job_list_view(request):
     context = {
         'jobs': jobs.order_by('-created_at'),
         'categories': JobPosting.CATEGORY_CHOICES,
+        'provinces': VIETNAM_PROVINCES,
         'search_values': request.GET
     }
     return render(request, 'recruitment/job_list.html', context)
@@ -1003,12 +959,14 @@ def job_board_view(request):
     context = {
         'jobs': jobs.order_by('-created_at'),
         'categories': JobPosting.CATEGORY_CHOICES, 
+        'provinces': VIETNAM_PROVINCES,
         'search_values': request.GET 
     }
     return render(request, 'recruitment/job_board.html', context)
 
 @login_required
 def view_candidate_profile(request, user_id):
+
     if request.user.user_type != 'recruiter':
         messages.error(request, "Bạn không có quyền truy cập trang này.")
         return redirect('job_list')
@@ -1016,8 +974,14 @@ def view_candidate_profile(request, user_id):
     profile_user = get_object_or_404(CustomUser, id=user_id, user_type='candidate')
     profile = get_object_or_404(Profile, user=profile_user)
 
+    applications = Application.objects.filter(
+        candidate=profile_user,
+        job__recruiter=request.user
+    ).select_related('job').order_by('-applied_at')
+
     context = {
-        'profile': profile
+        'profile': profile,
+        'applications': applications 
     }
     return render(request, 'recruitment/view_candidate_profile.html', context)
 
@@ -1033,6 +997,7 @@ def process_application_view(request, application_id):
     if request.method == 'POST':
         decision = request.POST.get('decision') 
         custom_message = request.POST.get('custom_message', '')
+        is_talent_pool = request.POST.get('is_talent_pool') == 'on'
 
         candidate_profile, _ = Profile.objects.get_or_create(user=application.candidate)
         candidate_name = candidate_profile.full_name or application.candidate.username
@@ -1040,82 +1005,63 @@ def process_application_view(request, application_id):
         recruiter_profile, _ = Profile.objects.get_or_create(user=request.user)
         recruiter_name = recruiter_profile.full_name or request.user.username
 
+        combined_interview_datetime_obj = None 
+        new_status = ""
+        success_message = ""
+        template_type = ""
+
         try:
-            client = groq.Groq(api_key=settings.GROQ_API_KEY)
-            ai_generated_email = ""
-            new_status = ""
-            success_message = ""
-            
+            combined_interview_time_for_ai = ""
+
             if decision == 'invite':
                 interview_time_str = request.POST.get('interview_time')
                 interview_date_str = request.POST.get('interview_date')
-                interview_location = request.POST.get('interview_location')
+                interview_location = request.POST.get('interview_location', '')
                 
                 try:
-                    interview_date_obj = datetime.date.fromisoformat(interview_date_str)
-                    formatted_date = interview_date_obj.strftime('%d/%m/%Y')
-                    combined_interview_time_for_ai = f"{interview_time_str} ngày {formatted_date}"
+                    combined_datetime_str = f"{interview_date_str} {interview_time_str}"
+                    combined_interview_datetime_obj = datetime.datetime.strptime(combined_datetime_str, '%Y-%m-%d %H:%M')
+                    
+                    formatted_date = combined_interview_datetime_obj.strftime('%d/%m/%Y lúc %H:%M')
+                    combined_interview_time_for_ai = formatted_date
                 except (ValueError, TypeError):
                     combined_interview_time_for_ai = f"{interview_time_str} {interview_date_str}"
 
-                prompt = f"""
-                Viết một email mời phỏng vấn chuyên nghiệp cho ứng viên.
-                - Tên ứng viên: {candidate_name}
-                - Vị trí: {job_title}
-                - Thời gian: {combined_interview_time_for_ai}
-                - Địa điểm/Link: {interview_location}
-                - Ghi chú thêm: {custom_message}
-                - Người gửi: {recruiter_name}
-                Yêu cầu ứng viên xác nhận. KHÔNG VIẾT TIÊU ĐỀ EMAIL.
-                """
+                template_type = 'invite'
                 new_status = 'invited'
                 success_message = f"Đã gửi lời mời phỏng vấn đến {candidate_name}."
 
             elif decision == 'reject_cv':
-                prompt = f"""
-                Viết một email từ chối hồ sơ (vòng CV) chuyên nghiệp, lịch sự.
-                - Tên ứng viên: {candidate_name}
-                - Vị trí: {job_title}
-                - Ghi chú thêm (lý do nếu có): {custom_message}
-                - Người gửi: {recruiter_name}
-                Cảm ơn họ đã ứng tuyển và chúc may mắn. KHÔNG VIẾT TIÊU ĐỀ EMAIL.
-                """
+                template_type = 'reject_cv'
                 new_status = 'rejected'
                 success_message = f"Đã gửi thông báo từ chối (lọc CV) đến {candidate_name}."
+                application.is_talent_pool = is_talent_pool # <-- LƯU KHO NHÂN TÀI
 
             elif decision == 'pass':
-                prompt = f"""
-                Viết một email CHÚC MỪNG TRÚNG TUYỂN chuyên nghiệp.
-                - Tên ứng viên: {candidate_name}
-                - Vị trí: {job_title}
-                - Ghi chú thêm (về lương, ngày bắt đầu...): {custom_message}
-                - Người gửi: {recruiter_name}
-                Chào mừng họ đến với công ty. KHÔNG VIẾT TIÊU ĐỀ EMAIL.
-                """
+                template_type = 'pass'
                 new_status = 'passed'
                 success_message = f"Đã gửi thông báo trúng tuyển đến {candidate_name}."
 
             elif decision == 'reject_interview':
-                prompt = f"""
-                Viết một email từ chối hồ sơ (vòng Phỏng vấn) chuyên nghiệp, lịch sự.
-                - Tên ứng viên: {candidate_name}
-                - Vị trí: {job_title}
-                - Ghi chú thêm: {custom_message}
-                - Người gửi: {recruiter_name}
-                Cảm ơn họ đã tham gia phỏng vấn và chúc may mắn. KHÔNG VIẾT TIÊU ĐỀ EMAIL.
-                """
+                template_type = 'reject_interview'
                 new_status = 'rejected'
                 success_message = f"Đã gửi thông báo từ chối (rớt PV) đến {candidate_name}."
-
+                application.is_talent_pool = is_talent_pool # <-- LƯU KHO NHÂN TÀI
+            
             else:
                 messages.error(request, 'Lựa chọn không hợp lệ.')
                 return redirect('process_application', application_id=application.id)
             
-            chat_completion = client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-8b-instant", 
-            )
-            ai_generated_email = chat_completion.choices[0].message.content
+            template_obj = EmailTemplate.objects.get(recruiter=request.user, template_type=template_type)
+            template_context = Context({
+                'candidate_name': candidate_name,
+                'job_title': job_title,
+                'recruiter_name': recruiter_name,
+                'custom_message': custom_message,
+                'interview_time': combined_interview_time_for_ai,
+                'interview_location': request.POST.get('interview_location', ''),
+            })
+            email_content = Template(template_obj.content).render(template_context)
             
             action_url = None
             if decision == 'invite':
@@ -1125,24 +1071,44 @@ def process_application_view(request, application_id):
             
             Notification.objects.create(
                 recipient=application.candidate,
-                message=ai_generated_email,
+                message=email_content,
                 action_url=action_url 
             )
             
             application.status = new_status
             application.save()
+
+            if decision == 'invite' and combined_interview_datetime_obj:
+                interview, created = Interview.objects.get_or_create(application=application)
+                interview.interview_date = combined_interview_datetime_obj
+                interview.location = request.POST.get('interview_location', '')
+                interview.save()
+            
             messages.success(request, success_message)
 
+        except EmailTemplate.DoesNotExist:
+            messages.error(request, f"Không tìm thấy mẫu email cho '{decision}'. Vui lòng tạo mẫu trong 'Quản lý Mẫu Email' trước.")
         except Exception as e:
-            print(f"Lỗi Groq API khi xử lý hồ sơ: {e}")
-            messages.error(request, 'Đã có lỗi xảy ra với AI. Không thể gửi thông báo.')
+            print(f"Lỗi khi xử lý hồ sơ (dùng template): {e}")
+            messages.error(request, 'Đã có lỗi xảy ra. Không thể gửi thông báo.')
 
         return redirect('applicant_list', job_id=application.job.id)
 
     else:
+        templates = {}
+        relevant_templates = ['invite', 'reject_cv', 'pass', 'reject_interview']
+        for t_type in relevant_templates:
+            template_obj, created = EmailTemplate.objects.get_or_create(
+                recruiter=request.user,
+                template_type=t_type,
+                defaults={'content': DEFAULT_TEMPLATES.get(t_type, '')}
+            )
+            templates[t_type] = template_obj.content
+        
         context = {
             'application': application,
-            'current_status': application.status 
+            'current_status': application.status,
+            'templates_json': json.dumps(templates), 
         }
         return render(request, 'recruitment/process_application.html', context)
     
@@ -1263,21 +1229,162 @@ def hard_delete_job_view(request, job_id):
 
 @login_required
 def application_result_view(request, application_id):
-    """
-    Hiển thị trang kết quả sau khi ứng viên nộp hồ sơ,
-    bao gồm cả phân tích AI.
-    """
     application = get_object_or_404(Application, pk=application_id, candidate=request.user)
     
-    # Lấy kết quả phân tích từ session
     analysis_result = request.session.get('analysis_result', None)
     
-    # Xóa session sau khi lấy
     if 'analysis_result' in request.session:
         del request.session['analysis_result']
 
     context = {
         'application': application,
-        'analysis': analysis_result # Gửi kết quả (score, strengths, suggestions)
+        'analysis': analysis_result 
     }
     return render(request, 'recruitment/application_result.html', context)
+
+@login_required
+def manage_templates_view(request):
+    if request.user.user_type != 'recruiter':
+        return redirect('job_list')
+    
+    if request.method == 'POST':
+        template_type = request.POST.get('template_type')
+        content = request.POST.get('content')
+        
+        template_obj = get_object_or_404(
+            EmailTemplate, 
+            recruiter=request.user, 
+            template_type=template_type
+        )
+        template_obj.content = content
+        template_obj.save()
+        messages.success(request, f"Đã cập nhật mẫu '{template_obj.get_template_type_display()}' thành công.")
+        return redirect('manage_templates')
+
+    templates = {}
+    for key, default_content in DEFAULT_TEMPLATES.items():
+        template_obj, created = EmailTemplate.objects.get_or_create(
+            recruiter=request.user,
+            template_type=key,
+            defaults={'content': default_content}
+        )
+        templates[key] = template_obj
+        
+    return render(request, 'recruitment/manage_templates.html', {'templates': templates})
+
+@login_required
+def all_applicants_view(request):
+    """
+    TRANG GỘP (ĐÃ VIẾT LẠI):
+    - Xử lý GET: Lọc và sắp xếp danh sách Ứng tuyển.
+    - Xử lý POST: Tìm kiếm AI trên danh sách Ứng tuyển.
+    - Cả hai đều trả về MỘT danh sách 'applications' duy nhất.
+    """
+    
+    status_choices = Application.STATUS_CHOICES
+    
+    base_applications_query = Application.objects.filter(
+        job__recruiter=request.user,
+        job__is_archived=False
+    ).select_related('job', 'candidate__profile')
+
+    is_search_results = False 
+    query = "" 
+
+    if request.method == 'POST':
+        query = request.POST.get('query', '')
+        is_search_results = True 
+        
+        if query:
+            all_applications_data = []
+            for app in base_applications_query:
+                cv_text = extract_text_from_cv(app.cv)
+                if cv_text:
+                    all_applications_data.append({
+                        "application_id": app.id, 
+                        "cv_text": cv_text
+                    })
+
+            if not all_applications_data:
+                applications = base_applications_query.none()
+            else:
+                applications_json_str = json.dumps(all_applications_data, ensure_ascii=False)
+                prompt = f"""Với vai trò là headhunter, hãy phân tích yêu cầu sau đây và tìm 3 HỒ SƠ ỨNG TUYỂN phù hợp nhất từ danh sách.
+                YÊU CẦU: {query}
+                DANH SÁCH HỒ SƠ ỨNG TUYỂN: {applications_json_str}
+                
+                Hãy trả về MỘT CHUỖI JSON HỢP LỆ. Chuỗi JSON là một danh sách (list), mỗi phần tử là một object chỉ có 2 key: "application_id" (số nguyên) và "reason" (chuỗi giải thích ngắn gọn)."""
+                
+                try:
+                    client = groq.Groq(api_key=settings.GROQ_API_KEY)
+                    chat_completion = client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": "Bạn là một AI chuyên tìm kiếm, chỉ trả về kết quả dưới dạng JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        model="llama-3.1-8b-instant" 
+                    )
+                    response_text = chat_completion.choices[0].message.content
+                    
+                    json_str = response_text
+                    json_match_markdown = re.search(r'```json\n(.*?)\n```', response_text, re.DOTALL)
+                    
+                    if json_match_markdown:
+                        json_str = json_match_markdown.group(1)
+                    else:
+                        json_match_plain = re.search(r'[\{\[].*?[\}\]]', response_text, re.DOTALL)
+                        if json_match_plain:
+                            json_str = json_match_plain.group(0)
+                    
+                    ai_results = json.loads(json_str)
+                    
+                    application_ids = [res.get("application_id") for res in ai_results]
+                    applications = base_applications_query.filter(id__in=application_ids)
+                    
+                except Exception as e:
+                    print(f"Lỗi Groq API khi tìm kiếm ứng viên: {e}")
+                    messages.error(request, 'Đã có lỗi xảy ra với AI. Vui lòng thử lại.')
+                    applications = base_applications_query.none() 
+        else:
+            applications = base_applications_query.none()
+
+    else:
+        sort_by = request.GET.get('sort', '-applied_at')
+        status_filter = request.GET.get('status', '')
+
+        valid_sorts = ['-applied_at', 'applied_at', '-ai_score']
+        if sort_by not in valid_sorts:
+            sort_by = '-applied_at'
+        
+        filtered_applications_query = base_applications_query
+        if status_filter:
+            filtered_applications_query = filtered_applications_query.filter(status=status_filter)
+
+        applications = filtered_applications_query.order_by(sort_by)
+
+    context = {
+        'applications': applications,
+        'status_choices': status_choices,
+        'query': query, 
+        'is_search_results': is_search_results 
+    }
+    return render(request, 'recruitment/all_applicants_list.html', context)
+
+@login_required
+def application_detail_view(request, application_id):
+    if request.user.user_type != 'recruiter':
+        messages.error(request, "Bạn không có quyền truy cập trang này.")
+        return redirect('job_list')
+        
+    application = get_object_or_404(
+        Application.objects.select_related('job', 'candidate__profile'),
+        pk=application_id,
+        job__recruiter=request.user 
+    )
+
+    context = {
+        'application': application,
+        'profile': application.candidate.profile,
+        'job': application.job
+    }
+    return render(request, 'recruitment/application_detail.html', context)

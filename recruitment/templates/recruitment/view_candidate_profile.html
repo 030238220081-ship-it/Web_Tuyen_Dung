@@ -1,0 +1,124 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Hồ sơ Ứng viên: {{ profile.full_name|default:profile.user.username }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h3 mb-0"><i class="bi bi-person-badge-fill me-2"></i>Hồ sơ Ứng viên</h1>
+            </div>
+            <div class="card-body p-4">
+                
+                <div class="text-center mb-4">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="Ảnh đại diện" class="img-thumbnail rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <i class="bi bi-person-circle" style="font-size: 150px; color: #ccc;"></i>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <h3 class="text-center">{{ profile.full_name|default:profile.user.username }}</h3>
+                    <p class="text-center text-muted">{{ profile.user.email }}</p>
+                </div>
+                
+                <hr>
+
+                {% if profile.summary %}
+                <div class="mb-4">
+                    <h5 class="fw-bold">Tóm tắt chuyên môn</h5>
+                    <div class="bg-light p-3 rounded" style="white-space: pre-wrap;">
+                        {{ profile.summary|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                    <h5 class="fw-bold">CV Gốc (Trong hồ sơ)</h5>
+                    {% if profile.cv_file %}
+                        <a href="{{ profile.cv_file.url }}" class="btn btn-success" target="_blank">
+                            <i class="bi bi-file-earmark-arrow-down-fill me-2"></i>Xem CV gốc
+                        </a>
+                    {% else %}
+                        <div class="alert alert-warning">Ứng viên này chưa tải lên CV nào trong hồ sơ.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white">
+                <h4 class="h5 mb-0"><i class="bi bi-clock-history me-2"></i>Lịch sử Ứng tuyển (với bạn)</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Vị trí ứng tuyển</th>
+                                <th scope="col">Ngày nộp</th>
+                                <th scope="col">Điểm AI</th>
+                                <th scope="col">Trạng thái</th>
+                                <th scope="col">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for app in applications %}
+                            <tr>
+                                <td class="fw-bold">{{ app.job.title }}</td>
+                                <td>{{ app.applied_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if app.ai_score == 0 and "Chưa chạy phân tích" in app.ai_summary %}
+                                        <span class="badge bg-light text-dark" data-bs-toggle="tooltip" title="Nộp nhanh, chưa phân tích.">
+                                            <i class="bi bi-info-circle-fill text-primary"></i> 0
+                                        </span>
+                                    {% else %}
+                                        <span class="badge {% if app.ai_score >= 70 %}bg-success{% elif app.ai_score >= 40 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {{ app.ai_score|floatformat:0 }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if app.status == 'passed' %}
+                                        <span class="badge bg-success">Đã trúng tuyển</span>
+                                    {% elif app.status == 'rejected' %}
+                                        <span class="badge bg-danger">Đã từ chối</span>
+                                    {% elif app.status == 'confirmed' %}
+                                        <span class="badge bg-primary">Đã xác nhận PV</span>
+                                    {% elif app.status == 'invited' %}
+                                        <span class="badge bg-info">Đã mời PV</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Chờ xử lý</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'application_detail' app.id %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                        Xem chi tiết
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted p-3">
+                                    Ứng viên này chưa nộp hồ sơ vào bất kỳ vị trí nào của bạn.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+{% endblock %}

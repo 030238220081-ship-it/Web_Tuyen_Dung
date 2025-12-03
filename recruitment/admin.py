@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, JobPosting, Application, Profile
-
+from .models import CustomUser, JobPosting, Application, Profile, EmailTemplate
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
     list_display = ('username', 'email', 'user_type', 'is_staff')
@@ -16,3 +15,4 @@ admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(JobPosting)
 admin.site.register(Application)
 admin.site.register(Profile)
+admin.site.register(EmailTemplate)

@@ -53,8 +53,8 @@ class Application(models.Model):
     cv = models.FileField(upload_to='cvs/')
     ai_score = models.FloatField(null=True, blank=True)
     ai_summary = models.TextField(blank=True)
-    ai_interview_questions = models.TextField(blank=True)
     applied_at = models.DateTimeField(auto_now_add=True)
+    is_talent_pool = models.BooleanField(default=False, verbose_name="Lưu vào Kho nhân tài")
 
     def __str__(self):
         return f"{self.candidate.username} applied for {self.job.title}"
@@ -95,3 +95,33 @@ class DirectMessage(models.Model):
 
     class Meta:
         ordering = ['timestamp']
+
+class EmailTemplate(models.Model):
+    TEMPLATE_TYPES = (
+        ('invite', 'Mời phỏng vấn (Hồ sơ đạt)'),
+        ('reject_cv', 'Từ chối (Lọc CV)'),
+        ('pass', 'Trúng tuyển (Sau phỏng vấn)'),
+        ('reject_interview', 'Từ chối (Sau phỏng vấn)'),
+    )
+    
+    recruiter = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='email_templates')
+    template_type = models.CharField(max_length=20, choices=TEMPLATE_TYPES, verbose_name="Loại mẫu")
+    content = models.TextField(verbose_name="Nội dung mẫu")
+
+    class Meta:
+        unique_together = ('recruiter', 'template_type')
+
+    def __str__(self):
+        return f"Mẫu '{self.get_template_type_display()}' của {self.recruiter.username}"
+    
+class Interview(models.Model):
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, verbose_name="Hồ sơ ứng tuyển")
+    
+    interview_date = models.DateTimeField(null=True, blank=True, verbose_name="Ngày giờ phỏng vấn")
+    location = models.CharField(max_length=255, blank=True, verbose_name="Địa điểm phỏng vấn")
+    hr_notes = models.TextField(blank=True, verbose_name="Ghi chú của HR (Không bắt buộc)")
+    ai_analysis = models.JSONField(blank=True, null=True, verbose_name="Phân tích chi tiết từ AI (Không bắt buộc)")
+    ai_score = models.IntegerField(default=0, verbose_name="Điểm phỏng vấn từ AI (Không bắt buộc)")
+
+    def __str__(self):
+        return f"Phỏng vấn cho {self.application.candidate.username} vị trí {self.application.job.title}"

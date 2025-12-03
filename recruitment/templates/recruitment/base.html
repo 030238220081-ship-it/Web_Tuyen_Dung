@@ -41,10 +41,9 @@
         .navbar-animated {
             animation: bloomIn 0.7s ease-out forwards;
             position: relative; 
-            z-index: 1100; /* Sửa lỗi z-index */
+            z-index: 1030; /* Sửa lỗi z-index */
         }
 
-        /* Hiệu ứng laze cho nút */
         .laser-btn-container {
             position: relative;
             padding: 2px; 
@@ -53,6 +52,7 @@
             display: inline-block;
             margin-right: 0.5rem;
         }
+
         .laser-btn-container::before {
             content: '';
             position: absolute;
@@ -94,17 +94,14 @@
                             <a class="nav-link" href="{% url 'job_board' %}">Việc làm</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'job_matches' %}">✨ AI Tìm việc phù hợp</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'cv_review' %}">🤖 AI Nhận xét CV</a>
+                            <a class="nav-link" href="{% url 'job_matches' %}">Đề xuất việc làm</a>
                         </li>
                     {% elif user.user_type == 'recruiter' %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'recruiter_dashboard' %}">Dashboard</a>
+                            <a class="nav-link" href="{% url 'recruiter_dashboard' %}">Trang chủ</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'search_candidates' %}">Tìm kiếm ứng viên</a>
+                            <a class="nav-link" href="{% url 'all_applicants' %}">Quản lý Ứng viên</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -143,7 +140,7 @@
                                 </span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'profile' %}">Quản lý CV của tôi</a></li>
+                                <li><a class="dropdown-item" href="{% url 'profile' %}">Quản lý hồ sơ của tôi</a></li>
                                 <li><a class="dropdown-item" href="{% url 'my_applications' %}">Quản lý ứng tuyển</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
@@ -169,6 +166,8 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="{% url 'profile' %}">Cập nhật thông tin</a></li>
+
+                                    <li><a class="dropdown-item" href="{% url 'manage_templates' %}">Quản lý mẫu thông báo</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form action="{% url 'logout' %}" method="post" class="d-inline">
@@ -239,7 +238,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Script Tự động tắt thông báo
     const autoDismissAlerts = document.querySelectorAll('.auto-dismiss-alert');
     autoDismissAlerts.forEach(function(alertElement) {
         const alertInstance = new bootstrap.Alert(alertElement);
@@ -247,10 +245,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (alertInstance) {
                 alertInstance.close(); 
             }
-        }, 5000); // 5 giây
+        }, 5000); 
     });
 
-    // Logic Chatbot
     const chatForm = document.getElementById('chat-form');
     if (chatForm) {
         const chatInput = document.getElementById('chat-input');

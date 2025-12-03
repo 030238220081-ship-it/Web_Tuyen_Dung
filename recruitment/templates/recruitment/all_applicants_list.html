@@ -1,0 +1,140 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Quản lý Toàn bộ Ứng viên{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2"></h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+    </div>
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Lọc theo trạng thái</label>
+                    <select class="form-select" name="status">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        {% for value, display in status_choices %}
+                            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="sort" class="form-label">Sắp xếp theo</label>
+                    <select class="form-select" name="sort">
+                        <option value="-applied_at" {% if request.GET.sort == '-applied_at' %}selected{% endif %}>Ngày nộp (Mới nhất)</option>
+                        <option value="-ai_score" {% if request.GET.sort == '-ai_score' %}selected{% endif %}>Điểm AI (Cao nhất)</option>
+                        <option value="applied_at" {% if request.GET.sort == 'applied_at' %}selected{% endif %}>Ngày nộp (Cũ nhất)</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Lọc</button>
+                    <a href="{% url 'all_applicants' %}" class="btn btn-outline-secondary ms-2">Xóa Lọc</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        Tìm kiếm với AI
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <textarea class="form-control" name="query" rows="3" placeholder="Ví dụ: Tôi cần tìm ứng viên Junior Python Developer, có kinh nghiệm với Django và biết sử dụng Git...">{{ query }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Tìm kiếm bằng AI</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        
+        {% if is_search_results %}
+            <h4 class="mb-3">Kết quả tìm kiếm AI</h4>
+        {% else %}
+            <h4 class="mb-3">Danh sách hồ sơ ứng tuyển</h4>
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Ứng viên</th>
+                        <th scope="col">Vị trí ứng tuyển</th>
+                        <th scope="col">Ngày nộp</th>
+                        <th scope="col">Điểm AI</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                    <tr>
+                        <td class="fw-bold">{{ app.candidate.profile.full_name|default:app.candidate.username }}</td>
+                        <td>{{ app.job.title }}</td>
+                        <td>{{ app.applied_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if app.ai_score == 0 and "Chưa chạy phân tích" in app.ai_summary %}
+                                <span class="badge bg-light text-dark" 
+                                      data-bs-toggle="tooltip" 
+                                      title="Sử dụng chức năng nộp nhanh, chưa phân tích.">
+                                    <i class="bi bi-info-circle-fill text-primary"></i> 0
+                                </span>
+                            {% else %}
+                                <span class="badge {% if app.ai_score >= 70 %}bg-success{% elif app.ai_score >= 40 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ app.ai_score|floatformat:0 }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if app.status == 'passed' %}
+                                <span class="badge bg-success">Đã trúng tuyển</span>
+                            {% elif app.status == 'rejected' %}
+                                <span class="badge bg-danger">Đã từ chối</span>
+                            {% elif app.status == 'confirmed' %}
+                                <span class="badge bg-primary">Đã xác nhận PV</span>
+                            {% elif app.status == 'invited' %}
+                                <span class="badge bg-info">Đã mời PV</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Chờ xử lý</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            <a href="{% url 'application_detail' app.id %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                Xem chi tiết
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            {% if is_search_results %}
+                                AI không tìm thấy hồ sơ nào phù hợp.
+                            {% else %}
+                                Bạn chưa nhận được hồ sơ ứng tuyển nào.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+{% endblock %}

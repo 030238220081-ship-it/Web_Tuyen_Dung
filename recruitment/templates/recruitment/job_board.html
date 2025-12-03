@@ -5,12 +5,11 @@
 
 <style>
     .job-description-preview {
-        word-wrap: break-word; /* Bẻ gãy từ quá dài */
+        word-wrap: break-word; 
         overflow-wrap: break-word;
-        white-space: pre-wrap; /* Tôn trọng các dấu xuống dòng từ AI */
+        white-space: pre-wrap; 
     }
     
-    /* Hiệu ứng hover cho thẻ JD */
     .job-card {
         transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
     }
@@ -28,7 +27,12 @@
                     <input type="text" class="form-control" name="q" placeholder="Nhập tiêu đề, kỹ năng..." value="{{ search_values.q }}">
                 </div>
                 <div class="col-md-3">
-                    <input type="text" class="form-control" name="location" placeholder="Địa điểm..." value="{{ search_values.location }}">
+                    <select class="form-select" name="location">
+                        <option value="">Tất cả địa điểm</option>
+                        {% for province in provinces %}
+                            <option value="{{ province }}" {% if search_values.location == province %}selected{% endif %}>{{ province }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <select class="form-select" name="category">

@@ -6,45 +6,34 @@
     <div class="card-body">
         <h1 class="card-title">Xử lý hồ sơ ứng tuyển</h1>
         <p>Quyết định của bạn cho ứng viên <strong>{{ application.candidate.username }}</strong> (vị trí: <strong>"{{ application.job.title }}"</strong>).</p>
-        <p>AI sẽ giúp bạn soạn một email thông báo chuyên nghiệp.</p>
 
         <form method="post">
             {% csrf_token %}
             
             <div class="mb-3">
                 <label class="form-label fw-bold">Quyết định của bạn:</label>
-                
                 {% if current_status == 'pending' %}
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="decision" id="decision_invite" value="invite" checked>
-                    <label class="form-check-label" for="decision_invite">
-                        Mời phỏng vấn (Hồ sơ đạt)
-                    </label>
+                    <label class="form-check-label" for="decision_invite">Mời phỏng vấn (Hồ sơ đạt)</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="decision" id="decision_reject_cv" value="reject_cv">
-                    <label class="form-check-label" for="decision_reject_cv">
-                        Từ chối (Hồ sơ không đạt)
-                    </label>
+                    <label class="form-check-label" for="decision_reject_cv">Từ chối (Hồ sơ không đạt)</label>
                 </div>
-                
                 {% elif current_status == 'confirmed' %}
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="decision" id="decision_pass" value="pass" checked>
-                    <label class="form-check-label" for="decision_pass">
-                        Trúng tuyển
-                    </label>
+                    <label class="form-check-label" for="decision_pass">Trúng tuyển</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="decision" id="decision_reject_interview" value="reject_interview">
-                    <label class="form-check-label" for="decision_reject_interview">
-                        Từ chối (Không đạt phỏng vấn)
-                    </label>
+                    <label class="form-check-label" for="decision_reject_interview">Từ chối (Không đạt phỏng vấn)</label>
                 </div>
                 {% endif %}
             </div>
 
-            <div id="invite_details">
+            <div id="invite_details" style="display: none;">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="interview_time" class="form-label">Chọn giờ phỏng vấn</label>
@@ -63,26 +52,86 @@
             
             <div class="mb-3">
                 <label for="custom_message" class="form-label">Ghi chú thêm (Không bắt buộc)</label>
-                <textarea class="form-control" id="custom_message" name="custom_message" rows="3" placeholder="Ví dụ: Vui lòng mang theo máy tính xách tay (nếu mời PV) hoặc Chúc bạn may mắn lần sau (nếu từ chối)."></textarea>
+                <textarea class="form-control" id="custom_message" name="custom_message" rows="3" placeholder="Ghi chú này sẽ được thêm vào mẫu email."></textarea>
             </div>
             
+            <div class="mb-3" id="talent_pool_option" style="display: none;">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_talent_pool" id="is_talent_pool">
+                    <label class="form-check-label" for="is_talent_pool">
+                        Lưu ứng viên này vào "Kho nhân tài" (để tìm kiếm sau)
+                    </label>
+                </div>
+            </div>
+
+            <hr>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Xem trước Email</label>
+                <div class="d-flex justify-content-end mb-2">
+                    <a href="{% url 'manage_templates' %}" target="_blank" class="small">
+                        <i class="bi bi-pencil-fill"></i> Chỉnh sửa mẫu
+                    </a>
+                </div>
+                <textarea class="form-control" id="email-preview" rows="10" readonly style="background-color: #f8f9fa; white-space: pre-wrap;"></textarea>
+            </div>
+
             <a href="{% url 'applicant_list' application.job.id %}" class="btn btn-secondary">Hủy</a>
             <button type="submit" class="btn btn-primary" id="submit-btn">
-                <span id="btn-text">Gửi thông báo (AI soạn thảo)</span>
-                <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status" aria-hidden="true"></span>
+                <span id="btn-text">Gửi thông báo</span>
+                <span class="spinner-border spinner-border-sm d-none" id="loading-spinner" role="status"></span>
             </button>
         </form>
     </div>
 </div>
 
 <script>
+    const templates = JSON.parse('{{ templates_json|escapejs }}');
+    
     const radios = document.querySelectorAll('input[name="decision"]');
     const inviteDetails = document.getElementById('invite_details');
+    const talentPoolOption = document.getElementById('talent_pool_option');
+    const previewTextarea = document.getElementById('email-preview');
+    const customMessageInput = document.getElementById('custom_message');
+
     const timeInput = document.getElementById('interview_time');
     const dateInput = document.getElementById('interview_date');
     const locationInput = document.getElementById('interview_location');
 
-    function toggleInviteDetails() {
+    const decisionMap = {
+        'decision_invite': 'invite',
+        'decision_reject_cv': 'reject_cv',
+        'decision_pass': 'pass',
+        'decision_reject_interview': 'reject_interview'
+    };
+
+    function updatePreview() {
+        let selectedTemplateKey = '';
+        
+        for (const radioId in decisionMap) {
+            const radio = document.getElementById(radioId);
+            if (radio && radio.checked) { 
+                selectedTemplateKey = decisionMap[radioId];
+                break;
+            }
+        }
+
+        if (selectedTemplateKey) {
+            let templateContent = templates[selectedTemplateKey];
+
+            templateContent = templateContent.replace(/{{candidate_name}}/g, "{{ application.candidate.username }}");
+            templateContent = templateContent.replace(/{{job_title}}/g, "{{ application.job.title }}");
+            templateContent = templateContent.replace(/{{recruiter_name}}/g, "{{ user.profile.full_name|default:user.username }}");
+            
+            let combinedTime = (dateInput.value || '(ngày)') + ' ' + (timeInput.value || '(giờ)');
+            templateContent = templateContent.replace(/{{custom_message}}/g, customMessageInput.value || "(không có ghi chú thêm)");
+            templateContent = templateContent.replace(/{{interview_time}}/g, combinedTime);
+            templateContent = templateContent.replace(/{{interview_location}}/g, locationInput.value || "(chưa nhập địa điểm)");
+
+            previewTextarea.value = templateContent;
+        }
+    }
+
+    function toggleSections() {
         const inviteRadio = document.getElementById('decision_invite');
         const inviteChecked = inviteRadio ? inviteRadio.checked : false;
         
@@ -97,11 +146,29 @@
             dateInput.required = false;
             locationInput.required = false;
         }
+
+        const rejectCvRadio = document.getElementById('decision_reject_cv');
+        const rejectInterviewRadio = document.getElementById('decision_reject_interview');
+        const rejectCvChecked = rejectCvRadio ? rejectCvRadio.checked : false;
+        const rejectInterviewChecked = rejectInterviewRadio ? rejectInterviewRadio.checked : false;
+        
+        if (rejectCvChecked || rejectInterviewChecked) {
+            talentPoolOption.style.display = 'block';
+        } else {
+            talentPoolOption.style.display = 'none';
+        }
+        
+        updatePreview();
     }
     
-    radios.forEach(radio => radio.addEventListener('change', toggleInviteDetails));
+    radios.forEach(radio => radio.addEventListener('change', toggleSections));
     
-    toggleInviteDetails();
+    customMessageInput.addEventListener('keyup', updatePreview);
+    timeInput.addEventListener('change', updatePreview);
+    dateInput.addEventListener('change', updatePreview);
+    locationInput.addEventListener('keyup', updatePreview);
+    
+    toggleSections();
 
     const aiForm = document.querySelector('form');
     const submitBtn = document.getElementById('submit-btn');
@@ -110,7 +177,7 @@
 
     aiForm.addEventListener('submit', function() {
         submitBtn.disabled = true;
-        btnText.textContent = 'AI đang xử lý, vui lòng chờ...';
+        btnText.textContent = 'Đang xử lý...';
         loadingSpinner.classList.remove('d-none');
     });
 </script>

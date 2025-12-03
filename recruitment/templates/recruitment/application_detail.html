@@ -1,0 +1,110 @@
+{% extends 'recruitment/base.html' %}
+{% block title %}Chi tiết Ứng viên: {{ profile.full_name|default:profile.user.username }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    
+    <div class="col-lg-5 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary text-white">
+                <h4 class="h5 mb-0"><i class="bi bi-person-badge-fill me-2"></i>Hồ sơ Ứng viên</h4>
+            </div>
+            <div class="card-body p-4">
+                
+                <div class="text-center mb-4">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="Ảnh đại diện" class="img-thumbnail rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <i class="bi bi-person-circle" style="font-size: 150px; color: #ccc;"></i>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <h3 class="text-center">{{ profile.full_name|default:profile.user.username }}</h3>
+                    <p class="text-center text-muted">{{ profile.user.email }}</p>
+                </div>
+                
+                <hr>
+
+                {% if profile.summary %}
+                <div class="mb-4">
+                    <h5 class="fw-bold">Tóm tắt chuyên môn</h5>
+                    <div class="bg-light p-3 rounded" style="white-space: pre-wrap;">
+                        {{ profile.summary|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h4 class="h5 mb-0"><i class="bi bi-file-earmark-text-fill me-2"></i>Chi tiết Ứng tuyển</h4>
+                 <a href="{% url 'all_applicants' %}" class="btn btn-light btn-sm">Quay lại danh sách</a>
+            </div>
+            <div class="card-body p-4">
+                
+                <h5>Ứng tuyển cho vị trí: <strong>{{ job.title }}</strong></h5>
+                <p>Ngày nộp: {{ application.applied_at|date:"d/m/Y H:i" }}</p>
+                
+                <hr>
+                
+                <h5 class="fw-bold">Trạng thái</h5>
+                {% if application.status == 'passed' %}
+                    <span class="badge bg-success fs-6">Đã trúng tuyển</span>
+                {% elif application.status == 'rejected' %}
+                    <span class="badge bg-danger fs-6">Đã từ chối</span>
+                {% elif application.status == 'confirmed' %}
+                    <span class="badge bg-primary fs-6">Đã xác nhận phỏng vấn</span>
+                {% elif application.status == 'invited' %}
+                    <span class="badge bg-info fs-6">Đã gửi lời mời</span>
+                {% else %}
+                    <span class="badge bg-secondary fs-6">Chờ xử lý</span>
+                {% endif %}
+                
+                <hr>
+                <h5 class="fw-bold">CV ứng viên </h5>
+                {% if application.cv %}
+                    <a href="{{ application.cv.url }}" class="btn btn-success" target="_blank">
+                        <i class="bi bi-file-earmark-arrow-down-fill me-2"></i>Xem CV 
+                    </a>
+                {% else %}
+                    <div class="alert alert-warning">Không tìm thấy CV cho hồ sơ này.</div>
+                {% endif %}
+                <hr>
+
+                <h5 class="fw-bold">Hành động</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'chat_view' application.id %}" class="btn btn-info">
+                        <i class="bi bi-chat-dots-fill me-2"></i>Chat với {{ application.candidate.username }}
+                    </a>
+                    
+                    {% if application.status == 'pending' or application.status == 'confirmed' %}
+                        <a href="{% url 'process_application' application.id %}" class="btn btn-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>Gửi thông báo 
+                        </a>
+                    {% endif %}
+                </div>
+
+                <hr>
+                
+                <h5 class="fw-bold">🤖 Đánh giá từ AI 🤖</h5>
+                {% if application.ai_score == 0 and "Chưa chạy phân tích" in application.ai_summary %}
+                    <div class="alert alert-secondary py-2">
+                        <p class="mb-1 small">Hồ sơ này dùng 'Nộp nhanh' và chưa được phân tích.</p>
+                        <a href="{% url 're_analyze_application' application.id %}" class="btn btn-sm btn-info w-100">Chạy phân tích AI</a>
+                    </div>
+                {% else %}
+                    <p><strong>Điểm phù hợp: {{ application.ai_score|floatformat:0 }} / 100</strong></p>
+                    <div class="bg-light p-2 rounded small" style="white-space: pre-wrap;">
+                        {{ application.ai_summary|linebreaks }}
+                    </div>
+                {% endif %}
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
